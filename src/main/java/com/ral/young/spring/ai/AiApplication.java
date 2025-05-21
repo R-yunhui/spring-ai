@@ -1,9 +1,7 @@
 package com.ral.young.spring.ai;
 
-import com.ral.young.spring.ai.config.CustomOpenAiChatProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * @author renyunhui
@@ -12,7 +10,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  * @since 1.0.0
  */
 @SpringBootApplication
-@EnableConfigurationProperties(CustomOpenAiChatProperties.class)
 public class AiApplication {
     
     public static void main(String[] args) {
