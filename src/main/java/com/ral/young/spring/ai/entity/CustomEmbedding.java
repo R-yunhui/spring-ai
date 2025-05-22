@@ -2,6 +2,8 @@ package com.ral.young.spring.ai.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import org.springframework.ai.model.ModelResult;
+import org.springframework.ai.model.ResultMetadata;
 
 import java.math.BigDecimal;
 
@@ -12,16 +14,16 @@ import java.math.BigDecimal;
  * @since 1.0.0
  */
 @Data
-public class CustomEmbedding {
+public class CustomEmbedding implements ModelResult<BigDecimal[]> {
 
 	@JsonProperty("index")
-	Integer index;
+	private Integer index;
 
 	@JsonProperty("embedding")
-	BigDecimal[] embedding;
+	private BigDecimal[] embedding;
 
 	@JsonProperty("object")
-	String object;
+	private String object;
 
 	public CustomEmbedding() {
 	}
@@ -30,5 +32,15 @@ public class CustomEmbedding {
 		this.index = index;
 		this.embedding = embedding;
 		this.object = object;
+	}
+
+	@Override
+	public BigDecimal[] getOutput() {
+		return embedding;
+	}
+
+	@Override
+	public ResultMetadata getMetadata() {
+		return null;
 	}
 }

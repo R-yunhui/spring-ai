@@ -1,10 +1,10 @@
 package com.ral.young.spring.ai.entity;
 
 import cn.hutool.json.JSONObject;
-import lombok.AllArgsConstructor;
+import com.google.common.collect.Lists;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.ai.model.ModelRequest;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 
 import java.util.List;
@@ -16,12 +16,27 @@ import java.util.List;
  * @since 1.0.0
  */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
-public class CustomEmbeddingRequest {
+public class CustomEmbeddingRequest implements ModelRequest<List<JSONObject>> {
 
 	private List<JSONObject> inputs;
 
 	private OpenAiEmbeddingOptions options;
+
+	public CustomEmbeddingRequest() {
+	}
+
+	public CustomEmbeddingRequest(JSONObject... inputs) {
+		this(Lists.newArrayList(inputs), OpenAiEmbeddingOptions.builder().build());
+	}
+
+	public CustomEmbeddingRequest(List<JSONObject> inputs, OpenAiEmbeddingOptions options) {
+		this.inputs = inputs;
+		this.options = options;
+	}
+
+	@Override
+	public List<JSONObject> getInstructions() {
+		return inputs;
+	}
 }

@@ -43,9 +43,7 @@ public class OpenAiService {
 	private final DeepSeekChatModel deepSeekChatModel;
 
 	public OpenAiService(OpenAiChatModel openAiChatModel, CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel) {
-		this.chatClient = ChatClient.builder(openAiChatModel)
-				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
-				.build();
+		this.chatClient = ChatClient.builder(openAiChatModel).defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。").build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
 	}
@@ -53,41 +51,22 @@ public class OpenAiService {
 	public String chat(String prompt) {
 		OpenAiChatOptions options = OpenAiChatOptions.builder()
 				// 指定模型
-				.model("qwen2.5-72b-instruct")
-				.temperature(0.7)
-				.build();
+				.model("qwen2.5-72b-instruct").temperature(0.7).build();
 		Prompt userPrompt = new Prompt(prompt, options);
-		ChatResponse chatResponse = chatClient.prompt(userPrompt)
-				.call()
-				.chatResponse();
+		ChatResponse chatResponse = chatClient.prompt(userPrompt).call().chatResponse();
 		assert chatResponse != null;
-		return chatResponse.getResult()
-				.getOutput()
-				.getText();
+		return chatResponse.getResult().getOutput().getText();
 	}
 
 	public String chatWithImage(ImageDTO imageDTO) {
 		try {
-			OpenAiChatOptions options = OpenAiChatOptions.builder()
-					.model("qwen2.5-72b-instruct")
-					.temperature(0.7)
-					.build();
-			Media media = Media.builder()
-					.data(imageDTO.getImageUrl())
-					.mimeType(MimeTypeUtils.IMAGE_JPEG)
-					.build();
-			UserMessage userMessage = UserMessage.builder()
-					.text(imageDTO.getPrompt())
-					.media(media)
-					.build();
+			OpenAiChatOptions options = OpenAiChatOptions.builder().model("qwen2.5-72b-instruct").temperature(0.7).build();
+			Media media = Media.builder().data(imageDTO.getImageUrl()).mimeType(MimeTypeUtils.IMAGE_JPEG).build();
+			UserMessage userMessage = UserMessage.builder().text(imageDTO.getPrompt()).media(media).build();
 			Prompt userPrompt = new Prompt(Collections.singletonList(userMessage), options);
-			ChatResponse chatResponse = chatClient.prompt(userPrompt)
-					.call()
-					.chatResponse();
+			ChatResponse chatResponse = chatClient.prompt(userPrompt).call().chatResponse();
 			assert chatResponse != null;
-			return chatResponse.getResult()
-					.getOutput()
-					.getText();
+			return chatResponse.getResult().getOutput().getText();
 		} catch (Exception e) {
 			log.error("调用openai接口异常", e);
 			throw new RuntimeException(e);
@@ -95,28 +74,18 @@ public class OpenAiService {
 	}
 
 	public Flux<String> chatStream(String prompt) {
-		OpenAiChatOptions options = OpenAiChatOptions.builder()
-				.model("qwen2.5-72b-instruct")
-				.temperature(0.7)
-				.streamUsage(true) // 开启流式传输
+		OpenAiChatOptions options = OpenAiChatOptions.builder().model("qwen2.5-72b-instruct").temperature(0.7).streamUsage(true) // 开启流式传输
 				.build();
 		Prompt userPrompt = new Prompt(prompt, options);
-		return chatClient.prompt(userPrompt)
-				.stream()
-				.content();
+		return chatClient.prompt(userPrompt).stream().content();
 	}
 
 	public String deepSeek(String prompt) {
-		OpenAiChatOptions options = OpenAiChatOptions.builder()
-				.model("deepseek-r1")
-				.temperature(0.7)
-				.build();
+		OpenAiChatOptions options = OpenAiChatOptions.builder().model("deepseek-r1").temperature(0.7).build();
 		Prompt userPrompt = new Prompt(prompt, options);
-		ChatResponse chatResponse = deepSeekChatModel
-				.call(userPrompt);
+		ChatResponse chatResponse = deepSeekChatModel.call(userPrompt);
 		assert chatResponse != null;
-		DeepSeekAssistantMessage output = (DeepSeekAssistantMessage) chatResponse.getResult()
-				.getOutput();
+		DeepSeekAssistantMessage output = (DeepSeekAssistantMessage) chatResponse.getResult().getOutput();
 		JSONObject object = new JSONObject();
 		object.putOpt("content", output.getText());
 		object.putOpt("reasoning-content", output.getReasoningContent());
@@ -124,18 +93,20 @@ public class OpenAiService {
 	}
 
 	public CustomEmbeddingResponse embedding(List<EmbeddingDTO> embeddingDTOList) {
-		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
-				.model("multimodal-embedding")
-				.build();
-		List<JSONObject> documents = embeddingDTOList.stream().map(o -> {
-			if (o.getEmbeddingType().equals(CommonConstant.EmbeddingType.TEXT_EMBEDDING)) {
-				return new JSONObject("text", o.getInput());
-			} else if (o.getEmbeddingType().equals(CommonConstant.EmbeddingType.IMAGE_EMBEDDING)) {
-				return new JSONObject("image", o.getInput());
-			}
-			return null;
-		}).filter(Objects::nonNull).toList();
+		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder().model("multimodal-embedding").build();
+		List<JSONObject> documents = embeddingDTOList.stream().map(embeddingDTO ->
+				switch (embeddingDTO.getEmbeddingType()) {
+					case CommonConstant.EmbeddingType.TEXT_EMBEDDING ->
+							new JSONObject("text", embeddingDTO.getInput());
+					case CommonConstant.EmbeddingType.IMAGE_EMBEDDING ->
+							new JSONObject("image", embeddingDTO.getInput());
+					default -> {
+						log.error("不支持的embedding类型:{}", embeddingDTO.getEmbeddingType());
+						yield null;
+					}
+				}
+		).filter(Objects::nonNull).toList();
 		CustomEmbeddingRequest embeddingRequest = new CustomEmbeddingRequest(documents, options);
-		return embeddingModel.customCall(embeddingRequest);
+		return embeddingModel.call(embeddingRequest);
 	}
 }

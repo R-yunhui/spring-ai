@@ -40,7 +40,7 @@ public class CustomDocumentEmbeddingModel implements DocumentEmbeddingModel {
 		return new EmbeddingResponse(Lists.newArrayList());
 	}
 
-	public CustomEmbeddingResponse customCall(@NonNull CustomEmbeddingRequest request) {
+	public CustomEmbeddingResponse call(@NonNull CustomEmbeddingRequest request) {
 		OpenAiApi.EmbeddingRequest<List<JSONObject>> embeddingRequest = new OpenAiApi.EmbeddingRequest<>(
 				request.getInputs()
 				, request.getOptions().getModel()
