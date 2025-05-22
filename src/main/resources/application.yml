@@ -1,0 +1,54 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /ai
+
+spring:
+  application:
+    name: spring-ai
+    version: 1.0.0
+  # ai 配置相关
+  ai:
+    deepseek:
+      api-key: sk-dbc8ed51cec741d388e0ca023d33b551
+      base-url: http://192.168.2.54:9015
+      chat:
+        completions-path: /v1/chat/completions
+    model:
+      embedding:
+    openai:
+      api-key: sk-dbc8ed51cec741d388e0ca023d33b551
+      custom:
+        models:
+          - baseUrl: http://192.168.2.54:9015
+            name: embeddingModel
+            model-type: embedding
+            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            options:
+              model: multimodal-embedding
+              temperature: 0.1
+            completionsPath: /v1/embeddings
+          - baseUrl: http://192.168.2.54:9015
+            name: deepseekModel
+            model-type: chat
+            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            options:
+              model: deepseek-r1
+              temperature: 0.1
+            completionsPath: /v1/chat/completions
+          - baseUrl: http://192.168.2.54:9015
+            name: qwen2Model
+            model-type: chat
+            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            options:
+              model: qwen2.5_vl_7b_sft_cot
+              temperature: 0.1
+            completionsPath: /v1/chat/completions
+      chat:
+        base-url: http://192.168.2.54:9015
+      embedding:
+        base-url: http://192.168.2.54:9015
+        options:
+          model: multimodal-embedding
+        embeddings-path: /v1/embeddings
+        api-key: sk-dbc8ed51cec741d388e0ca023d33b551
