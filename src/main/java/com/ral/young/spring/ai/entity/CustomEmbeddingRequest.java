@@ -30,6 +30,10 @@ public class CustomEmbeddingRequest implements ModelRequest<List<JSONObject>> {
 		this(Lists.newArrayList(inputs), OpenAiEmbeddingOptions.builder().build());
 	}
 
+	public CustomEmbeddingRequest(List<JSONObject> inputs) {
+		this(inputs, OpenAiEmbeddingOptions.builder().build());
+	}
+
 	public CustomEmbeddingRequest(List<JSONObject> inputs, OpenAiEmbeddingOptions options) {
 		this.inputs = inputs;
 		this.options = options;

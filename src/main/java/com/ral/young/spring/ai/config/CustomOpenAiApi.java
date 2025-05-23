@@ -1,7 +1,8 @@
 package com.ral.young.spring.ai.config;
 
-import cn.hutool.json.JSONObject;
-import com.ral.young.spring.ai.entity.CustomEmbedding;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.ai.model.ApiKey;
 import org.springframework.ai.model.NoopApiKey;
 import org.springframework.ai.model.SimpleApiKey;
@@ -65,7 +66,7 @@ public class CustomOpenAiApi extends OpenAiApi {
 				});
 	}
 
-	public <T> ResponseEntity<EmbeddingList<CustomEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest) {
+	public <T> ResponseEntity<EmbeddingList<CurEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest) {
 		return this.restClient.post()
 				.uri(this.embeddingsPath)
 				.body(embeddingRequest)
@@ -73,6 +74,20 @@ public class CustomOpenAiApi extends OpenAiApi {
 				.toEntity(new ParameterizedTypeReference<>() {
 
 				});
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record CurEmbedding(// @formatter:off
+							@JsonProperty("index") Integer index,
+							@JsonProperty("embedding") double[] embedding,
+							@JsonProperty("object") String object) { // @formatter:on
+
+
+		public CurEmbedding(Integer index, double[] embedding) {
+			this(index, embedding, "embedding");
+		}
+
 	}
 
 	public static class Builder {

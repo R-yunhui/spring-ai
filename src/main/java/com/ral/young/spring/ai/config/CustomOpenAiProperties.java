@@ -31,6 +31,7 @@ public class CustomOpenAiProperties {
 	public static final String DEFAULT_CHAT_MODEL = "gpt-4";
 
 	public static final String DEFAULT_COMPLETIONS_PATH = "/v1/chat/completions";
+	public static final String DEFAULT_EMBEDDINGS_PATH = "/v1/embeddings";
 
 	private static final Double DEFAULT_TEMPERATURE = 0.7;
 
@@ -48,11 +49,13 @@ public class CustomOpenAiProperties {
 	@AllArgsConstructor
 	@NoArgsConstructor
 	public static class OpenAiChatModelConfig {
+		private Boolean enable = true;
 		private String name;
 		private String baseUrl;
 		private String appKey;
 		private CommonConstant.ModelType modelType = CommonConstant.ModelType.CHAT;
 		private String completionsPath = DEFAULT_COMPLETIONS_PATH;
+		private String embeddingsPath = DEFAULT_EMBEDDINGS_PATH;
 
 		private OpenAiChatOptions options = OpenAiChatOptions.builder()
 				.model(DEFAULT_CHAT_MODEL)

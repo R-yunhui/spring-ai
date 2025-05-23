@@ -21,8 +21,12 @@ public class CommonConstant {
 		/**
 		 * 嵌入模型
 		 */
-		EMBEDDING("embedding");
+		EMBEDDING("embedding"),
 
+		/**
+		 * 图片生成
+		 */
+		IMAGE_GENERATION("image-generation"),;
 
 		private final String type;
 

@@ -1,46 +1,41 @@
 package com.ral.young.spring.ai.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import org.springframework.ai.embedding.EmbeddingResultMetadata;
 import org.springframework.ai.model.ModelResult;
 import org.springframework.ai.model.ResultMetadata;
 
-import java.math.BigDecimal;
-
 /**
- * @author Admin
- * @description TODO
+ * @author renyh
+ * @description 自定义嵌入模型返回结果
  * @date 2025/5/22 19:14
  * @since 1.0.0
  */
-@Data
-public class CustomEmbedding implements ModelResult<BigDecimal[]> {
+public class CustomEmbedding implements ModelResult<double[]> {
 
-	@JsonProperty("index")
-	private Integer index;
+	@Getter
+	private final Integer index;
 
-	@JsonProperty("embedding")
-	private BigDecimal[] embedding;
+	@JsonIgnore
+	private final double[] embedding;
 
-	@JsonProperty("object")
-	private String object;
+	private final EmbeddingResultMetadata metadata;
 
-	public CustomEmbedding() {
-	}
-
-	public CustomEmbedding(Integer index, BigDecimal[] embedding, String object) {
+	public CustomEmbedding(Integer index, double[] embedding) {
 		this.index = index;
 		this.embedding = embedding;
-		this.object = object;
+		// TODO: 后续自定义嵌入模型返回结果的元数据
+		this.metadata = null;
 	}
 
 	@Override
-	public BigDecimal[] getOutput() {
+	public double[] getOutput() {
 		return embedding;
 	}
 
 	@Override
 	public ResultMetadata getMetadata() {
-		return null;
+		return metadata;
 	}
 }

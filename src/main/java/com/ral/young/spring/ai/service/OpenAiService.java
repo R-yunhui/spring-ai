@@ -18,6 +18,7 @@ import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
@@ -42,7 +43,8 @@ public class OpenAiService {
 
 	private final DeepSeekChatModel deepSeekChatModel;
 
-	public OpenAiService(OpenAiChatModel openAiChatModel, CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel) {
+	public OpenAiService(OpenAiChatModel openAiChatModel,
+						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel) {
 		this.chatClient = ChatClient.builder(openAiChatModel).defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。").build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
@@ -93,19 +95,27 @@ public class OpenAiService {
 	}
 
 	public CustomEmbeddingResponse embedding(List<EmbeddingDTO> embeddingDTOList) {
-		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder().model("multimodal-embedding").build();
+		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
+				.model(embeddingModel.getModel())
+				.build();
 		List<JSONObject> documents = embeddingDTOList.stream().map(embeddingDTO ->
 				switch (embeddingDTO.getEmbeddingType()) {
-					case CommonConstant.EmbeddingType.TEXT_EMBEDDING ->
-							new JSONObject("text", embeddingDTO.getInput());
-					case CommonConstant.EmbeddingType.IMAGE_EMBEDDING ->
-							new JSONObject("image", embeddingDTO.getInput());
+					case CommonConstant.EmbeddingType.TEXT_EMBEDDING -> {
+						JSONObject object = new JSONObject();
+						object.putOpt("text", embeddingDTO.getInput());
+						yield object;
+					}
+					case CommonConstant.EmbeddingType.IMAGE_EMBEDDING -> {
+						JSONObject object = new JSONObject();
+						object.putOpt("image", embeddingDTO.getInput());
+						yield object;
+					}
 					default -> {
 						log.error("不支持的embedding类型:{}", embeddingDTO.getEmbeddingType());
 						yield null;
 					}
 				}
-		).filter(Objects::nonNull).toList();
+		).toList();
 		CustomEmbeddingRequest embeddingRequest = new CustomEmbeddingRequest(documents, options);
 		return embeddingModel.call(embeddingRequest);
 	}

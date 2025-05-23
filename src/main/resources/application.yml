@@ -20,30 +20,41 @@ spring:
       api-key: sk-dbc8ed51cec741d388e0ca023d33b551
       custom:
         models:
-          - baseUrl: http://192.168.2.54:9015
-            name: embeddingModel
+          - baseUrl: https://dashscope.aliyuncs.com/api
+            name: multimodalEmbeddingV1
             model-type: embedding
-            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            app-key: sk-dbc8ed51cec741d388e0ca023d33b551
+            options:
+              model: multimodal-embedding-v1
+            embeddings-path: /v1/services/embeddings/multimodal-embedding/multimodal-embedding
+          - baseUrl: http://192.168.2.54:9015
+            name: multimodalEmbedding
+            model-type: embedding
+            app-key: sk-dbc8ed51cec741d388e0ca023d33b551
             options:
               model: multimodal-embedding
-              temperature: 0.1
-            completionsPath: /v1/embeddings
-          - baseUrl: http://192.168.2.54:9015
-            name: deepseekModel
+            embeddings-path: /v1/embeddings
+          - baseUrl: https://dashscope.aliyuncs.com/compatible-mode
+            name: qwenPlus
             model-type: chat
-            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            app-key: sk-dbc8ed51cec741d388e0ca023d33b551
             options:
-              model: deepseek-r1
-              temperature: 0.1
+              model: qwen-plus-2025-04-28
             completionsPath: /v1/chat/completions
-          - baseUrl: http://192.168.2.54:9015
-            name: qwen2Model
+          - baseUrl: https://dashscope.aliyuncs.com/compatible-mode
+            name: qwenMax
             model-type: chat
-            app-key: sk-n497jeZAydpNiUEUnDg5P9VZ5ecjTC0Li2T5RfMkQhQmgcz4
+            app-key: sk-dbc8ed51cec741d388e0ca023d33b551
             options:
-              model: qwen2.5_vl_7b_sft_cot
-              temperature: 0.1
+              model: qwen-max
             completionsPath: /v1/chat/completions
+          - baseUrl: https://dashscope.aliyuncs.com/api
+            name: waxTurBo
+            model-type: image_generation
+            app-key: sk-dbc8ed51cec741d388e0ca023d33b551
+            options:
+              model: wanx2.1-t2i-turbo
+            completionsPath: /v1/services/aigc/text2image/image-synthesis
       chat:
         base-url: http://192.168.2.54:9015
       embedding:

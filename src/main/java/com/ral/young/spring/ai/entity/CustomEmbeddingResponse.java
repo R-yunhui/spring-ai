@@ -1,5 +1,6 @@
 package com.ral.young.spring.ai.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,13 +26,15 @@ public class CustomEmbeddingResponse implements ModelResponse<CustomEmbedding> {
 	private EmbeddingResponseMetadata metadata;
 
 	@Override
+	@JsonIgnore
 	public CustomEmbedding getResult() {
-		return null;
+		return embeddings.getFirst();
 	}
 
 	@Override
+	@JsonIgnore
 	public List<CustomEmbedding> getResults() {
-		return List.of();
+		return embeddings;
 	}
 
 	@Override
