@@ -25,7 +25,6 @@ import reactor.core.publisher.Flux;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author renyh
@@ -45,7 +44,9 @@ public class OpenAiService {
 
 	public OpenAiService(OpenAiChatModel openAiChatModel,
 						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel) {
-		this.chatClient = ChatClient.builder(openAiChatModel).defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。").build();
+		this.chatClient = ChatClient.builder(openAiChatModel)
+				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
+				.build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
 	}
@@ -118,5 +119,20 @@ public class OpenAiService {
 		).toList();
 		CustomEmbeddingRequest embeddingRequest = new CustomEmbeddingRequest(documents, options);
 		return embeddingModel.call(embeddingRequest);
+	}
+
+	public String testTool(String prompt) {
+		ChatResponse chatResponse = chatClient.prompt(prompt)
+				.options(OpenAiChatOptions.builder()
+						.model("qwen2.5-72b-instruct")
+						.temperature(0.7)
+						.build())
+				.tools(new ToolService())
+				.call()
+				.chatResponse();
+		assert chatResponse != null;
+		return chatResponse.getResult()
+				.getOutput()
+				.getText();
 	}
 }

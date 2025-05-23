@@ -32,7 +32,7 @@ spring:
             model-type: embedding
             app-key: sk-dbc8ed51cec741d388e0ca023d33b551
             options:
-              model: multimodal-embedding
+              model: multimodal-embedding-v1
             embeddings-path: /v1/embeddings
           - baseUrl: https://dashscope.aliyuncs.com/compatible-mode
             name: qwenPlus
