@@ -10,7 +10,6 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -32,8 +31,9 @@ public class CustomOpenAiAutoConfiguration {
 
 
 	// 动态注册每个启用的 CHAT 或 IMAGE_GENERATION 模型为独立 Bean
+    // 动态注册每个启用的 EMBEDDING 模型为独立 Bean
 	@PostConstruct
-	public void registerChatModels() {
+	public void registerModels() {
 		customOpenAiProperties.getModels().stream()
 				.filter(config -> config.getEnable() && (config.getModelType() == CommonConstant.ModelType.CHAT || config.getModelType() == CommonConstant.ModelType.IMAGE_GENERATION))
 				.forEach(config -> {
@@ -41,21 +41,16 @@ public class CustomOpenAiAutoConfiguration {
 					OpenAiChatModel model = createOpenAiChatModel(config);
 					beanFactory.registerSingleton(beanName, model);
 				});
+
+        customOpenAiProperties.getModels().stream()
+                .filter(config -> config.getEnable() && config.getModelType() == CommonConstant.ModelType.EMBEDDING)
+                .forEach(config -> {
+                    String beanName = config.getName(); // 使用 model 字段作为 Bean 名称
+                    CustomDocumentEmbeddingModel model = createEmbeddingModel(config);
+                    beanFactory.registerSingleton(beanName, model);
+                });
 	}
 
-	// 动态注册每个启用的 EMBEDDING 模型为独立 Bean
-	@PostConstruct
-	public void registerEmbeddingModels() {
-		customOpenAiProperties.getModels().stream()
-				.filter(config -> config.getEnable() && config.getModelType() == CommonConstant.ModelType.EMBEDDING)
-				.forEach(config -> {
-					String beanName = config.getName(); // 使用 model 字段作为 Bean 名称
-					CustomDocumentEmbeddingModel model = createEmbeddingModel(config);
-					beanFactory.registerSingleton(beanName, model);
-				});
-	}
-
-	// 创建 Chat 模型
 	private OpenAiChatModel createOpenAiChatModel(CustomOpenAiProperties.OpenAiChatModelConfig config) {
 		OpenAiApi openAiApi = OpenAiApi.builder()
 				.baseUrl(config.getBaseUrl())
@@ -69,7 +64,6 @@ public class CustomOpenAiAutoConfiguration {
 				.build();
 	}
 
-	// 创建 Embedding 模型
 	private CustomDocumentEmbeddingModel createEmbeddingModel(CustomOpenAiProperties.OpenAiChatModelConfig config) {
 		CustomOpenAiApi openAiApi = CustomOpenAiApi.builder(new SimpleApiKey(config.getAppKey()))
 				.baseUrl(config.getBaseUrl())
