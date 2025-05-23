@@ -1,7 +1,6 @@
 package com.ral.young.spring.ai.model;
 
 import cn.hutool.json.JSONObject;
-import com.google.common.collect.Lists;
 import com.ral.young.spring.ai.config.CustomOpenAiApi;
 import com.ral.young.spring.ai.entity.CustomEmbedding;
 import com.ral.young.spring.ai.entity.CustomEmbeddingRequest;
@@ -10,11 +9,8 @@ import lombok.NonNull;
 import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.metadata.EmptyUsage;
 import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.embedding.DocumentEmbeddingModel;
-import org.springframework.ai.embedding.DocumentEmbeddingRequest;
-import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.embedding.EmbeddingResponseMetadata;
+import org.springframework.ai.model.Model;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.http.ResponseEntity;
 
@@ -26,18 +22,12 @@ import java.util.List;
  * @date 2025/5/22 17:06
  * @since 1.0.0
  */
-public class CustomDocumentEmbeddingModel implements DocumentEmbeddingModel {
+public class CustomDocumentEmbeddingModel implements Model<CustomEmbeddingRequest, CustomEmbeddingResponse> {
 
 	private final CustomOpenAiApi openAiApi;
 
 	public CustomDocumentEmbeddingModel(CustomOpenAiApi openAiApi) {
 		this.openAiApi = openAiApi;
-	}
-
-	@Override
-	@NonNull
-	public EmbeddingResponse call(@NonNull DocumentEmbeddingRequest request) {
-		return new EmbeddingResponse(Lists.newArrayList());
 	}
 
 	public CustomEmbeddingResponse call(@NonNull CustomEmbeddingRequest request) {
@@ -57,10 +47,5 @@ public class CustomDocumentEmbeddingModel implements DocumentEmbeddingModel {
 
 	private DefaultUsage getDefaultUsage(OpenAiApi.Usage usage) {
 		return new DefaultUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens(), usage);
-	}
-
-	@Override
-	public int dimensions() {
-		return 0;
 	}
 }
