@@ -48,8 +48,7 @@ public class CustomDocumentEmbeddingModel implements Model<CustomEmbeddingReques
 				request.getInputs()
 				, model
 		);
-		MultiValueMap<String, String> additionalHttpHeader = MultiValueMap.fromSingleValue(this.options.getHttpHeaders());
-		ResponseEntity<OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding>> entity = openAiApi.customEmbeddings(embeddingRequest, additionalHttpHeader);
+		ResponseEntity<OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding>> entity = openAiApi.customEmbeddings(embeddingRequest);
 		OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding> embeddingResult = entity.getBody();
 		assert embeddingResult != null;
 

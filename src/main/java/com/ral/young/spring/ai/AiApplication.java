@@ -28,23 +28,4 @@ public class AiApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AiApplication.class, args);
 	}
-
-	static MultiValueMap<String, String> additionalHttpHeader = MultiValueMap.fromSingleValue(Map.of(
-			"Connection", "keep-alive"
-	));
-
-	@Bean
-	public WebClient.Builder webClientBuilder(ObjectProvider<WebClientCustomizer> customizerProvider) {
-		WebClient.Builder builder = WebClient.builder();
-		customizerProvider.orderedStream().forEach((customizer) -> customizer.customize(builder));
-		builder.defaultHeaders(h -> h.addAll(additionalHttpHeader));
-		return builder;
-	}
-
-	@Bean
-	RestClient.Builder restClientBuilder(RestClientBuilderConfigurer restClientBuilderConfigurer) {
-		return restClientBuilderConfigurer.configure(RestClient.builder()
-				.defaultHeaders(h -> h.addAll(additionalHttpHeader))
-		);
-	}
 }

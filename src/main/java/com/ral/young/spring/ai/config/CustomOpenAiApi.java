@@ -67,11 +67,10 @@ public class CustomOpenAiApi extends OpenAiApi {
 				});
 	}
 
-	public <T> ResponseEntity<EmbeddingList<CurEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest, MultiValueMap<String, String> additionalHttpHeader) {
+	public <T> ResponseEntity<EmbeddingList<CurEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest) {
 		return this.restClient.post()
 				.uri(this.embeddingsPath)
 				.body(embeddingRequest)
-				.headers(h -> h.addAll(additionalHttpHeader))
 				.retrieve()
 				.toEntity(new ParameterizedTypeReference<>() {
 

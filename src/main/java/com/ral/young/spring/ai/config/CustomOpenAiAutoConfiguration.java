@@ -35,7 +35,6 @@ public class CustomOpenAiAutoConfiguration {
 	@Resource
 	private RestClient.Builder restClientBuilder;
 
-
 	// 动态注册每个启用的 CHAT 或 IMAGE_GENERATION 模型为独立 Bean
     // 动态注册每个启用的 EMBEDDING 模型为独立 Bean
 	@PostConstruct
