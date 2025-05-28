@@ -35,9 +35,9 @@ spring:
             app-key: sk-dbc8ed51cec741d388e0ca023d33b551
             options:
               model: multimodal-embedding-v1
-              http-headers:
-                Connection: keep-alive
-                Upgrade: null
+#              http-headers:
+#                Connection: keep-alive
+#                Upgrade: null
             embeddings-path: /v1/embeddings
           - baseUrl: https://dashscope.aliyuncs.com/compatible-mode
             name: qwenPlus
@@ -71,10 +71,10 @@ spring:
             completionsPath: /v1/services/aigc/text2image/image-synthesis
       chat:
         base-url: http://192.168.2.54:9015
-        options:
-          http-headers:
-            Connection: keep-alive
-            Upgrade: null
+#        options:
+#          http-headers:
+#            Connection: keep-alive
+#            Upgrade: null
       embedding:
         base-url: http://192.168.2.54:9015
         options:

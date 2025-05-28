@@ -1,6 +1,14 @@
 package com.ral.young.spring.ai.practice;
 
+import cn.hutool.core.thread.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author renyh
@@ -8,9 +16,10 @@ import java.util.List;
  * @date 2025/5/27 14:00
  * @since 1.0.0
  */
+@Slf4j
 public class FeatureMain {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		System.out.println("----- record -----");
 		User user = new User("张三", 18);
 		System.out.println(user);
@@ -29,6 +38,103 @@ public class FeatureMain {
 		System.out.println(name);
 		System.out.println(userList);
 		System.out.println(age);
+
+		/*
+		 * 通过耗时对比传统线程和虚拟线程
+		 * 1. 虚拟线程：虚拟线程是JDK21引入的，它与普通线程类似，但运行速度更快，并且更轻量级。
+		 * 2. 虚拟线程适用 I/O密集型任务，如网络请求、文件读写等。
+		 * 3. 虚拟现场线程创建数量几乎无限制
+		 */
+		System.out.println("----- 虚拟线程 - 传统线程 -----");
+		CompletableFuture.runAsync(FeatureMain::testTraditionalThread);
+		CompletableFuture.runAsync(FeatureMain::testVirtualThread);
+
+		Thread.sleep(3000);
+		log.info("主线程结束");
+	}
+
+	public static void testVirtualThread() {
+		try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			long start = System.currentTimeMillis();
+
+			// 使用虚拟线程处理1000个任务
+			for (int i = 0; i < 1000; i++) {
+				final int taskId = i;
+				executor.submit(() -> {
+					log.info("开始处理任务 {}, 虚拟线程: {}", taskId, Thread.currentThread().getName());
+					try {
+						Thread.sleep(100); // 模拟I/O等待
+					} catch (InterruptedException e) {
+						log.error("线程被中断", e);
+					}
+					log.info("虚拟现场完成任务 {}", taskId);
+				});
+			}
+
+			// 等待所有虚拟线程完成
+			executor.shutdown();
+			try {
+				// 等待所有任务完成，最多等待指定时间
+				if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+					// 如果超时仍有任务未完成
+					executor.shutdownNow(); // 取消正在执行的任务
+					if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+						log.error("虚拟线程池未能终止");
+					}
+				}
+			} catch (InterruptedException e) {
+				executor.shutdownNow();
+				Thread.currentThread().interrupt(); // 恢复中断状态
+			}
+
+			long duration = System.currentTimeMillis() - start;
+			log.info("虚拟线程池方式总耗时，总耗时：{} 毫秒", duration);
+		}
+	}
+
+	public static void testTraditionalThread() {
+		// 创建固定大小的线程池(100个线程)
+		try (var executor = new ThreadPoolExecutor(100, 100, 0L, TimeUnit.MILLISECONDS,
+				new ArrayBlockingQueue<>(10000),
+				ThreadFactoryBuilder.create().setNamePrefix("traditional-thread-pool-").build(),
+				new ThreadPoolExecutor.DiscardPolicy()
+		);) {
+			long start = System.currentTimeMillis();
+
+			// 提交1000个任务
+			for (int i = 0; i < 1000; i++) {
+				final int taskId = i;
+				executor.submit(() -> {
+					log.info("开始执行任务 {}, 传统线程: {}", taskId, Thread.currentThread().getName());
+					try {
+						Thread.sleep(100); // 模拟I/O等待
+					} catch (InterruptedException e) {
+						log.error("线程被中断", e);
+					}
+					log.info("完成任务 {}", taskId);
+				});
+			}
+
+			executor.shutdown();
+			try {
+				// 等待所有任务完成，最多等待指定时间
+				if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+					// 如果超时仍有任务未完成
+					executor.shutdownNow(); // 取消正在执行的任务
+					if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+						log.error("传统虚拟线程池未能终止");
+					}
+				}
+			} catch (InterruptedException e) {
+				executor.shutdownNow();
+				Thread.currentThread().interrupt(); // 恢复中断状态
+			}
+
+			long duration = System.currentTimeMillis() - start;
+			log.info("传统线程池方式总耗时，总耗时：{} 毫秒", duration);
+		} catch (Exception e) {
+			log.error("传统线程池执行异常", e);
+		}
 	}
 
 	public static record User(String name, int age) {

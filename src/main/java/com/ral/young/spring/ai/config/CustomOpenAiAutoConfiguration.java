@@ -11,6 +11,8 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * @author renyh
@@ -28,6 +30,10 @@ public class CustomOpenAiAutoConfiguration {
 	private CustomOpenAiProperties customOpenAiProperties;
 	@Resource
 	private ConfigurableListableBeanFactory beanFactory;
+	@Resource
+	private WebClient.Builder webClientBuilder;
+	@Resource
+	private RestClient.Builder restClientBuilder;
 
 
 	// 动态注册每个启用的 CHAT 或 IMAGE_GENERATION 模型为独立 Bean
@@ -56,6 +62,8 @@ public class CustomOpenAiAutoConfiguration {
 				.baseUrl(config.getBaseUrl())
 				.apiKey(config.getAppKey())
 				.completionsPath(config.getCompletionsPath())
+				.webClientBuilder(webClientBuilder)
+				.restClientBuilder(restClientBuilder)
 				.build();
 
 		return OpenAiChatModel.builder()
@@ -69,6 +77,8 @@ public class CustomOpenAiAutoConfiguration {
 				.baseUrl(config.getBaseUrl())
 				.apiKey(config.getAppKey())
 				.embeddingsPath(config.getEmbeddingsPath())
+				.webClientBuilder(webClientBuilder)
+				.restClientBuilder(restClientBuilder)
 				.build();
 
 		return new CustomDocumentEmbeddingModel(openAiApi, config.getOptions());
