@@ -4,6 +4,7 @@ import cn.hutool.core.thread.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -20,25 +21,16 @@ import java.util.concurrent.TimeUnit;
 public class FeatureMain {
 
 	public static void main(String[] args) throws InterruptedException {
-		System.out.println("----- record -----");
-		User user = new User("张三", 18);
-		System.out.println(user);
-		user.sayAge();
+		testRecord();
 
-		/*
-		 * var 关键字
-		 * 1. 是一个关键字，用于声明一个局部变量
-		 * 2. 编译的时候自动推断变量的类型
-		 * 3. 只能用于局部变量
-		 */
-		System.out.println("----- var -----");
-		var name = "李斯";
-		var userList = List.of(new User("张三", 18), new User("李四", 19));
-		var age = 21;
-		System.out.println(name);
-		System.out.println(userList);
-		System.out.println(age);
+		testVar();
 
+		testInstanceOf(Map.of("circle", new Circle(10)));
+
+		testThread();
+	}
+
+	private static void testThread() throws InterruptedException {
 		/*
 		 * 通过耗时对比传统线程和虚拟线程
 		 * 1. 虚拟线程：虚拟线程是JDK21引入的，它与普通线程类似，但运行速度更快，并且更轻量级。
@@ -52,6 +44,54 @@ public class FeatureMain {
 		Thread.sleep(3000);
 		log.info("主线程结束");
 	}
+
+	private static void testVar() {
+		/*
+		 * var 关键字
+		 * 1. 是一个关键字，用于声明一个局部变量
+		 * 2. 编译的时候自动推断变量的类型
+		 * 3. 只能用于局部变量
+		 */
+		System.out.println("----- var -----");
+		var name = "李斯";
+		var userList = List.of(new User("张三", 18), new User("李四", 19));
+		var age = 21;
+		System.out.println(name);
+		System.out.println(userList);
+		System.out.println(age);
+	}
+
+	private static void testRecord() {
+		System.out.println("----- record -----");
+		User user = new User("张三", 18);
+		System.out.println(user);
+		user.sayAge();
+	}
+
+	private static void testInstanceOf(Map<String, Object> map) {
+		System.out.println("----- instanceof -----");
+		var o = map.get("circle");
+
+		// Java 21 完整模式匹配
+		// instanceof 表达式可以匹配任意类型，包括基本类型和自定义类型
+		if (o instanceof Circle c) {
+			System.out.println("圆形，半径: " + c.radius());
+		}
+
+		// Switch表达式配合模式匹配
+		String desc = switch (o) {
+			case Circle(var r) -> "圆形, 半径 " + r;
+			case Rectangle(var w, var h) -> "矩形 " + w + "x" + h;
+			case null -> "空形状";
+			default -> "未知形状";
+		};
+
+		System.out.println(desc);
+	}
+
+	interface Shape {}
+	record Circle(double radius) implements Shape {}
+	record Rectangle(double w, double h) implements Shape {}
 
 	public static void testVirtualThread() {
 		try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
