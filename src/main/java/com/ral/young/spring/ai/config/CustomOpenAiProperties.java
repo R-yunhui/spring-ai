@@ -13,6 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author renyh
@@ -56,11 +57,7 @@ public class CustomOpenAiProperties {
 		private CommonConstant.ModelType modelType = CommonConstant.ModelType.CHAT;
 		private String completionsPath = DEFAULT_COMPLETIONS_PATH;
 		private String embeddingsPath = DEFAULT_EMBEDDINGS_PATH;
-
-		private OpenAiChatOptions options = OpenAiChatOptions.builder()
-				.model(DEFAULT_CHAT_MODEL)
-				.temperature(DEFAULT_TEMPERATURE)
-				.build();
+		private OpenAiChatOptions options;
 	}
 }
 

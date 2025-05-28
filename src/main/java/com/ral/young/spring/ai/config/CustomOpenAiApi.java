@@ -20,6 +20,7 @@ import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -48,6 +49,7 @@ public class CustomOpenAiApi extends OpenAiApi {
 			h.setContentType(MediaType.APPLICATION_JSON);
 			h.addAll(headers);
 		};
+
 		this.restClient = restClientBuilder.baseUrl(baseUrl)
 				.defaultHeaders(finalHeaders)
 				.defaultStatusHandler(responseErrorHandler)
@@ -66,10 +68,11 @@ public class CustomOpenAiApi extends OpenAiApi {
 				});
 	}
 
-	public <T> ResponseEntity<EmbeddingList<CurEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest) {
+	public <T> ResponseEntity<EmbeddingList<CurEmbedding>> customEmbeddings(EmbeddingRequest<T> embeddingRequest, MultiValueMap<String, String> additionalHttpHeader) {
 		return this.restClient.post()
 				.uri(this.embeddingsPath)
 				.body(embeddingRequest)
+				.headers(h -> h.addAll(additionalHttpHeader))
 				.retrieve()
 				.toEntity(new ParameterizedTypeReference<>() {
 

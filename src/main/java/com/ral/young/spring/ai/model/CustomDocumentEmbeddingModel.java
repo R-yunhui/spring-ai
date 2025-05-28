@@ -12,8 +12,10 @@ import org.springframework.ai.chat.metadata.EmptyUsage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.embedding.EmbeddingResponseMetadata;
 import org.springframework.ai.model.Model;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,11 +31,15 @@ public class CustomDocumentEmbeddingModel implements Model<CustomEmbeddingReques
 	private final CustomOpenAiApi openAiApi;
 
 	@Getter
+	private final OpenAiChatOptions options;
+
+	@Getter
 	private final String model;
 
-	public CustomDocumentEmbeddingModel(CustomOpenAiApi openAiApi, String model) {
+	public CustomDocumentEmbeddingModel(CustomOpenAiApi openAiApi, OpenAiChatOptions options) {
 		this.openAiApi = openAiApi;
-		this.model = model;
+		this.options = options;
+		this.model = options.getModel();
 	}
 
 	public CustomEmbeddingResponse call(@NonNull CustomEmbeddingRequest request) {
@@ -42,7 +48,8 @@ public class CustomDocumentEmbeddingModel implements Model<CustomEmbeddingReques
 				request.getInputs()
 				, model
 		);
-		ResponseEntity<OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding>> entity = openAiApi.customEmbeddings(embeddingRequest);
+		MultiValueMap<String, String> additionalHttpHeader = MultiValueMap.fromSingleValue(this.options.getHttpHeaders());
+		ResponseEntity<OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding>> entity = openAiApi.customEmbeddings(embeddingRequest, additionalHttpHeader);
 		OpenAiApi.EmbeddingList<CustomOpenAiApi.CurEmbedding> embeddingResult = entity.getBody();
 		assert embeddingResult != null;
 

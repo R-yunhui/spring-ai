@@ -54,7 +54,7 @@ public class OpenAiService {
 	public String chat(String prompt) {
 		OpenAiChatOptions options = OpenAiChatOptions.builder()
 				// 指定模型
-				.model("qwen2.5-72b-instruct").temperature(0.7).build();
+				.model("qwen-vl-72b").temperature(0.7).build();
 		Prompt userPrompt = new Prompt(prompt, options);
 		ChatResponse chatResponse = chatClient.prompt(userPrompt).call().chatResponse();
 		assert chatResponse != null;

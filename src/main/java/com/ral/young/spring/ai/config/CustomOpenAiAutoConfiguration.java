@@ -71,6 +71,6 @@ public class CustomOpenAiAutoConfiguration {
 				.embeddingsPath(config.getEmbeddingsPath())
 				.build();
 
-		return new CustomDocumentEmbeddingModel(openAiApi, config.getOptions().getModel());
+		return new CustomDocumentEmbeddingModel(openAiApi, config.getOptions());
 	}
 }
