@@ -63,7 +63,7 @@ public class OpenAiService {
 
 	public String chatWithImage(ImageDTO imageDTO) {
 		try {
-			OpenAiChatOptions options = OpenAiChatOptions.builder().model("qwen2.5-72b-instruct").temperature(0.7).build();
+			OpenAiChatOptions options = OpenAiChatOptions.builder().model("uranmm-40B").temperature(0.7).build();
 			Media media = Media.builder().data(imageDTO.getImageUrl()).mimeType(MimeTypeUtils.IMAGE_JPEG).build();
 			UserMessage userMessage = UserMessage.builder().text(imageDTO.getPrompt()).media(media).build();
 			Prompt userPrompt = new Prompt(Collections.singletonList(userMessage), options);
