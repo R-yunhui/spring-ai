@@ -1,6 +1,10 @@
 package com.ral.young.spring.ai.practice;
 
 import cn.hutool.core.thread.ThreadFactoryBuilder;
+import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -18,16 +22,17 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0.0
  */
 @Slf4j
+@SuppressWarnings("preview")
 public class FeatureMain {
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, JsonProcessingException {
 		testRecord();
 
-		testVar();
+		// testVar();
 
-		testInstanceOf(Map.of("circle", new Circle(10)));
+		// testInstanceOf(Map.of("circle", new Circle(10)));
 
-		testThread();
+		// testThread();
 	}
 
 	private static void testThread() throws InterruptedException {
@@ -61,9 +66,14 @@ public class FeatureMain {
 		System.out.println(age);
 	}
 
-	private static void testRecord() {
+	private static void testRecord() throws JsonProcessingException {
 		System.out.println("----- record -----");
 		User user = new User("张三", 18);
+		String jsonStr = JSONUtil.toJsonStr(user);
+		System.out.println(STR."HUTOOL JSON: \{jsonStr}");
+		ObjectMapper objectMapper = new ObjectMapper();
+		String valueAsString = objectMapper.writeValueAsString(user);
+		System.out.println(STR."OBJECT MAPPER: \{valueAsString}");
 		System.out.println(user);
 		user.sayAge();
 	}
@@ -75,13 +85,13 @@ public class FeatureMain {
 		// Java 21 完整模式匹配
 		// instanceof 表达式可以匹配任意类型，包括基本类型和自定义类型
 		if (o instanceof Circle c) {
-			System.out.println("圆形，半径: " + c.radius());
+			System.out.println(STR."圆形，半径: \{c.radius()}");
 		}
 
 		// Switch表达式配合模式匹配
 		String desc = switch (o) {
-			case Circle(var r) -> "圆形, 半径 " + r;
-			case Rectangle(var w, var h) -> "矩形 " + w + "x" + h;
+			case Circle(var r) -> STR."圆形, 半径 \{r}";
+			case Rectangle(var w, var h) -> STR."矩形 \{w}x\{h}";
 			case null -> "空形状";
 			default -> "未知形状";
 		};
@@ -89,9 +99,14 @@ public class FeatureMain {
 		System.out.println(desc);
 	}
 
-	interface Shape {}
-	record Circle(double radius) implements Shape {}
-	record Rectangle(double w, double h) implements Shape {}
+	interface Shape {
+	}
+
+	record Circle(double radius) implements Shape {
+	}
+
+	record Rectangle(double w, double h) implements Shape {
+	}
 
 	public static void testVirtualThread() {
 		try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -177,7 +192,7 @@ public class FeatureMain {
 		}
 	}
 
-	public static record User(String name, int age) {
+	public record User(@JsonProperty(value = "name") String name, @JsonProperty(value = "age") int age) {
 		/*
 		 * record关键字
 		 * 1. 是一个关键字，用于定义一个不可变的数据类
@@ -192,7 +207,7 @@ public class FeatureMain {
 		 */
 
 		public void sayAge() {
-			System.out.println("年龄是：" + age);
+			System.out.println(STR."年龄是：\{age}");
 		}
 	}
 }
