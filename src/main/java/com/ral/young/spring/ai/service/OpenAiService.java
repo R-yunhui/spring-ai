@@ -15,7 +15,6 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.memory.repository.jdbc.MysqlChatMemoryRepositoryDialect;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -44,6 +43,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@SuppressWarnings("preview")
 public class OpenAiService {
 
 	private final ChatClient chatClient;
@@ -53,6 +53,9 @@ public class OpenAiService {
 	private final CustomDocumentEmbeddingModel embeddingModel;
 
 	private final DeepSeekChatModel deepSeekChatModel;
+
+	@Resource
+	private ToolService toolService;
 
 	public OpenAiService(OpenAiChatModel openAiChatModel,
 						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel, JdbcTemplate jdbcTemplate, RedisTemplate<String, Object> redisTemplate) {
@@ -65,7 +68,6 @@ public class OpenAiService {
 
 		this.chatClient = ChatClient.builder(openAiChatModel)
 				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
-				.defaultAdvisors(List.of(messageChatMemoryAdvisor))
 				.build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
@@ -168,12 +170,25 @@ public class OpenAiService {
 	}
 
 	public String testTool(String prompt) {
-		ChatResponse chatResponse = chatClient.prompt(prompt)
+		ChatResponse chatResponse = chatClient
+				.prompt(STR."""
+						你是一个智能助手，需要根据用户的输入提供帮助。你可以进行普通对话，也可以在需要时使用工具函数。
+						用户输入：\{prompt}
+						
+						请按以下规则处理：
+						1. 如果是普通对话（如问候、咨询、闲聊等），直接回答，保持专业和友好
+						2. 如果需要使用工具函数，请参考每个工具函数的详细描述来正确使用：
+						   - getCurrentTime：获取当前系统时间（在处理时间相关操作时，建议先调用此函数）
+						   - createPeriodScheduledTask：创建周期性任务
+						   - createDelayTask：创建延迟执行任务
+						   - getCurrentTimeWithCity：获取指定城市的时间
+						
+						请根据用户输入的具体内容，选择合适的响应方式。如果是工具调用，请说明执行结果；如果是普通对话，请直接回答。""")
 				.options(OpenAiChatOptions.builder()
 						.model("qwen2.5-72b-instruct")
 						.temperature(0.7)
 						.build())
-				.tools(new ToolService())
+				.tools(toolService)
 				.call()
 				.chatResponse();
 		assert chatResponse != null;

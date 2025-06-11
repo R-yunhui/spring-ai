@@ -106,6 +106,30 @@ spring:
             completionsPath: /v1/services/aigc/text2image/image-synthesis
       chat:
         base-url: http://192.168.2.54:9015
+        options:
+          tools:
+            - type: function
+              function:
+                name: "getCurrentTime"
+                description: "获取当前系统时间，返回格式为：yyyy-MM-dd HH:mm:ss。在需要处理相对时间（如'明天'、'下周'）时，建议先调用此函数获取基准时间。"
+            - type: function
+              function:
+                name: "createPeriodScheduledTask"
+                description: "创建一个周期性执行的定时任务，用于定期检测指定的标签信息。任务会按照指定的cron表达式定期执行，直到应用程序停止。"
+                parameters:
+                  - name: "cornExpression"
+                    description: "cron表达式，用于定义任务的执行周期。例如：'0/10 * * * * ?'表示每10秒执行一次，'0 0 12 * * ?'表示每天中午12点执行，'0 0 12 ? * MON'表示每周一中午12点执行"
+                  - name: "labels"
+                    description: "需要检测的标签列表，例如：['标签1', '标签2']。这些标签将在每次任务执行时被检测"
+            - type: function
+              function:
+                name: "createDelayTask"
+                description: "创建一个延迟执行的任务，用于在指定的时间点检测标签信息。任务只会在指定的时间点执行一次。注意：在使用此工具之前，必须先调用 getCurrentTime 获取当前时间作为基准，特别是当用户使用相对时间（如'明天'、'下周'）时。"
+                parameters:
+                  - name: "date"
+                    description: "任务执行的具体时间点，格式为：yyyy-MM-dd HH:mm:ss。例如：'2025-06-12 15:30:00'。注意：如果使用相对时间，必须先调用 getCurrentTime 获取当前时间作为基准进行转换"
+                  - name: "labels"
+                    description: "需要检测的标签列表，例如：['标签1', '标签2']。这些标签将在指定时间点被检测"
       #        options:
       #          http-headers:
       #            Connection: keep-alive
