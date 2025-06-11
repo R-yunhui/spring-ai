@@ -34,6 +34,11 @@ public class OpenAiController {
 		return openAiService.chat(prompt);
 	}
 
+	@GetMapping(value = "/open-ai/chat-with-conversation-id", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public Flux<String> chatWithConversationId(@RequestParam(value = "prompt") String prompt, @RequestParam(value = "conversationId") String conversationId) {
+		return openAiService.chatWithConversationId(prompt, conversationId);
+	}
+
 	@GetMapping(value = "/deepseek/chat")
 	public String deepSeek(@RequestParam(value = "prompt") String prompt) {
 		return openAiService.deepSeek(prompt);

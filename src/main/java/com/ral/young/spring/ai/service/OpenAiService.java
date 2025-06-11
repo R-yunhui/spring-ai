@@ -6,9 +6,17 @@ import com.ral.young.spring.ai.dto.EmbeddingDTO;
 import com.ral.young.spring.ai.dto.ImageDTO;
 import com.ral.young.spring.ai.entity.CustomEmbeddingRequest;
 import com.ral.young.spring.ai.entity.CustomEmbeddingResponse;
+import com.ral.young.spring.ai.memory.CustomChatMemoryRepository;
 import com.ral.young.spring.ai.model.CustomDocumentEmbeddingModel;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
+import org.springframework.ai.chat.memory.repository.jdbc.MysqlChatMemoryRepositoryDialect;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -19,6 +27,8 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
@@ -32,23 +42,49 @@ import java.util.List;
  * @date 2025/5/21 16:50
  * @since 1.0.0
  */
-@Service
 @Slf4j
+@Service
 public class OpenAiService {
 
 	private final ChatClient chatClient;
+
+	private final ChatClient inDbMemoryChatClient;
 
 	private final CustomDocumentEmbeddingModel embeddingModel;
 
 	private final DeepSeekChatModel deepSeekChatModel;
 
 	public OpenAiService(OpenAiChatModel openAiChatModel,
-						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel) {
+						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel, JdbcTemplate jdbcTemplate, RedisTemplate<String, Object> redisTemplate) {
+		MessageChatMemoryAdvisor messageChatMemoryAdvisor = MessageChatMemoryAdvisor.builder(
+				MessageWindowChatMemory.builder()
+						.maxMessages(10)
+						.chatMemoryRepository(new InMemoryChatMemoryRepository())
+						.build()
+		).build();
+
 		this.chatClient = ChatClient.builder(openAiChatModel)
 				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
+				.defaultAdvisors(List.of(messageChatMemoryAdvisor))
 				.build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
+
+		MessageChatMemoryAdvisor dbChatMemoryAdvisor = MessageChatMemoryAdvisor.builder(
+				MessageWindowChatMemory.builder()
+						.maxMessages(10)
+						.chatMemoryRepository(CustomChatMemoryRepository.builder()
+								.jdbcTemplate(jdbcTemplate)
+								.redisTemplate(redisTemplate)
+								.dialect(new MysqlChatMemoryRepositoryDialect())
+								.build())
+						.build()
+		).build();
+		this.inDbMemoryChatClient = ChatClient.builder(openAiChatModel)
+				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
+				.defaultAdvisors(List.of(dbChatMemoryAdvisor))
+				.build();
+
 	}
 
 	public String chat(String prompt) {
@@ -59,6 +95,16 @@ public class OpenAiService {
 		ChatResponse chatResponse = chatClient.prompt(userPrompt).call().chatResponse();
 		assert chatResponse != null;
 		return chatResponse.getResult().getOutput().getText();
+	}
+
+	public Flux<String> chatWithConversationId(String prompt, String id) {
+		OpenAiChatOptions options = OpenAiChatOptions.builder()
+				.model("qwen-vl-72b").temperature(0.7).build();
+		Prompt userPrompt = new Prompt(prompt, options);
+		return inDbMemoryChatClient.prompt(userPrompt)
+				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
+				.stream()
+				.content();
 	}
 
 	public String chatWithImage(ImageDTO imageDTO) {
