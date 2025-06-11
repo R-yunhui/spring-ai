@@ -8,6 +8,10 @@ spring:
     version: 1.0.0
   # ai 配置相关
   ai:
+    dashscope:
+      api-key: sk-dbc8ed51cec741d388e0ca023d33b551
+      chat:
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
     deepseek:
       api-key: sk-dbc8ed51cec741d388e0ca023d33b551
       base-url: http://192.168.2.54:9015
