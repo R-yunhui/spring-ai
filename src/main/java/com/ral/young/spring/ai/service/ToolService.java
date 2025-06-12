@@ -77,6 +77,11 @@ public class ToolService {
 		}
 	}
 
+	@Tool(name = "getDateArea", description = "获取当前用户所在的地区。返回值包括：北京、上海、广州、其他")
+	public String getDateArea() {
+		return "上海";
+	}
+
 	@Tool(name = "getCurrentTimeWithCity", description = "获取指定城市的当前时间。支持的城市包括：北京（当前时间）、上海（当前时间+1天）、广州（当前时间+3天）、其他城市（当前时间+5天）")
 	public String getCurrentTime(@ToolParam(description = "城市名称，目前支持：北京、上海、广州，其他城市将返回默认时间") String city) {
 		return switch (city) {

@@ -45,8 +45,8 @@ public class OpenAiController {
 	}
 
 	@GetMapping(value = "/open-ai/test-tool")
-	public String testTool(@RequestParam(value = "prompt") String prompt) {
-		return openAiService.testTool(prompt);
+	public String testTool(@RequestParam(value = "prompt") String prompt, @RequestParam(value = "conversationId") String conversationId) {
+		return openAiService.testTool(prompt, conversationId);
 	}
 
 	@GetMapping(value = "/open-ai/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

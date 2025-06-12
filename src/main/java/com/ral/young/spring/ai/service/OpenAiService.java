@@ -12,6 +12,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -72,7 +73,7 @@ public class OpenAiService {
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
 
-		MessageChatMemoryAdvisor dbChatMemoryAdvisor = MessageChatMemoryAdvisor.builder(
+		PromptChatMemoryAdvisor dbChatMemoryAdvisor = PromptChatMemoryAdvisor.builder(
 				MessageWindowChatMemory.builder()
 						.maxMessages(10)
 						.chatMemoryRepository(CustomChatMemoryRepository.builder()
@@ -169,8 +170,8 @@ public class OpenAiService {
 		return embeddingModel.call(embeddingRequest);
 	}
 
-	public String testTool(String prompt) {
-		ChatResponse chatResponse = chatClient
+	public String testTool(String prompt, String id) {
+		ChatResponse chatResponse = inDbMemoryChatClient
 				.prompt(STR."""
 						你是一个智能助手，需要根据用户的输入提供帮助。你可以进行普通对话，也可以在需要时使用工具函数。
 						用户输入：\{prompt}
@@ -182,13 +183,18 @@ public class OpenAiService {
 						   - createPeriodScheduledTask：创建周期性任务
 						   - createDelayTask：创建延迟执行任务
 						   - getCurrentTimeWithCity：获取指定城市的时间
+						   - getDateArea：获取当前用户所在的地区
+						3. 当用户请求创建延迟任务时，用户输入中明确包含地区（如“北京”“上海”），直接使用该地区进行校验，否则必须先调用 `getDateArea` 获取地区。
+                        4. 如果地区是“北京”，则调用 `createDelayTask` 创建任务。
+                        5. 如果地区不是北京，返回错误提示：“此功能仅限北京地区使用”。
 						
-						请根据用户输入的具体内容，选择合适的响应方式。如果是工具调用，请说明执行结果；如果是普通对话，请直接回答。""")
+						请根据用户输入的具体内容，选择合适的响应方式。如果是工具调用，请说明执行结果，如果工具调用的结果不满足，说明具体原因；如果是普通对话，请直接回答。""")
 				.options(OpenAiChatOptions.builder()
 						.model("qwen2.5-72b-instruct")
 						.temperature(0.7)
 						.build())
 				.tools(toolService)
+				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
 				.call()
 				.chatResponse();
 		assert chatResponse != null;
