@@ -58,36 +58,39 @@ public class OpenAiService {
 	@Resource
 	private ToolService toolService;
 
-	public OpenAiService(OpenAiChatModel openAiChatModel,
-						 @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel, JdbcTemplate jdbcTemplate, RedisTemplate<String, Object> redisTemplate) {
-		MessageChatMemoryAdvisor messageChatMemoryAdvisor = MessageChatMemoryAdvisor.builder(
-				MessageWindowChatMemory.builder()
+	public OpenAiService(OpenAiChatModel openAiChatModel, @Qualifier(value = "multimodalEmbedding") CustomDocumentEmbeddingModel embeddingModel, DeepSeekChatModel deepSeekChatModel, JdbcTemplate jdbcTemplate, RedisTemplate<String, Object> redisTemplate) {
+		MessageChatMemoryAdvisor messageChatMemoryAdvisor = MessageChatMemoryAdvisor
+				.builder(MessageWindowChatMemory
+						.builder()
 						.maxMessages(10)
 						.chatMemoryRepository(new InMemoryChatMemoryRepository())
-						.build()
-		).build();
+						.build())
+				.build();
 
-		this.chatClient = ChatClient.builder(openAiChatModel)
+		this.chatClient = ChatClient
+				.builder(openAiChatModel)
 				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
 				.build();
 		this.embeddingModel = embeddingModel;
 		this.deepSeekChatModel = deepSeekChatModel;
 
-		PromptChatMemoryAdvisor dbChatMemoryAdvisor = PromptChatMemoryAdvisor.builder(
-				MessageWindowChatMemory.builder()
+		PromptChatMemoryAdvisor dbChatMemoryAdvisor = PromptChatMemoryAdvisor
+				.builder(MessageWindowChatMemory
+						.builder()
 						.maxMessages(10)
-						.chatMemoryRepository(CustomChatMemoryRepository.builder()
+						.chatMemoryRepository(CustomChatMemoryRepository
+								.builder()
 								.jdbcTemplate(jdbcTemplate)
 								.redisTemplate(redisTemplate)
 								.dialect(new MysqlChatMemoryRepositoryDialect())
 								.build())
-						.build()
-		).build();
-		this.inDbMemoryChatClient = ChatClient.builder(openAiChatModel)
+						.build())
+				.build();
+		this.inDbMemoryChatClient = ChatClient
+				.builder(openAiChatModel)
 				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
 				.defaultAdvisors(List.of(dbChatMemoryAdvisor))
 				.build();
-
 	}
 
 	public String chat(String prompt) {
@@ -101,13 +104,9 @@ public class OpenAiService {
 	}
 
 	public Flux<String> chatWithConversationId(String prompt, String id) {
-		OpenAiChatOptions options = OpenAiChatOptions.builder()
-				.model("qwen-vl-72b").temperature(0.7).build();
+		OpenAiChatOptions options = OpenAiChatOptions.builder().model("qwen-vl-72b").temperature(0.7).build();
 		Prompt userPrompt = new Prompt(prompt, options);
-		return inDbMemoryChatClient.prompt(userPrompt)
-				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
-				.stream()
-				.content();
+		return inDbMemoryChatClient.prompt(userPrompt).advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id)).stream().content();
 	}
 
 	public String chatWithImage(ImageDTO imageDTO) {
@@ -145,61 +144,56 @@ public class OpenAiService {
 	}
 
 	public CustomEmbeddingResponse embedding(List<EmbeddingDTO> embeddingDTOList) {
-		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
-				.model(embeddingModel.getModel())
-				.build();
-		List<JSONObject> documents = embeddingDTOList.stream().map(embeddingDTO ->
-				switch (embeddingDTO.getEmbeddingType()) {
-					case CommonConstant.EmbeddingType.TEXT_EMBEDDING -> {
-						JSONObject object = new JSONObject();
-						object.putOpt("text", embeddingDTO.getInput());
-						yield object;
-					}
-					case CommonConstant.EmbeddingType.IMAGE_EMBEDDING -> {
-						JSONObject object = new JSONObject();
-						object.putOpt("image", embeddingDTO.getInput());
-						yield object;
-					}
-					default -> {
-						log.error("不支持的embedding类型:{}", embeddingDTO.getEmbeddingType());
-						yield null;
-					}
-				}
-		).toList();
+		OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder().model(embeddingModel.getModel()).build();
+		List<JSONObject> documents = embeddingDTOList.stream().map(embeddingDTO -> switch (embeddingDTO.getEmbeddingType()) {
+			case CommonConstant.EmbeddingType.TEXT_EMBEDDING -> {
+				JSONObject object = new JSONObject();
+				object.putOpt("text", embeddingDTO.getInput());
+				yield object;
+			}
+			case CommonConstant.EmbeddingType.IMAGE_EMBEDDING -> {
+				JSONObject object = new JSONObject();
+				object.putOpt("image", embeddingDTO.getInput());
+				yield object;
+			}
+			default -> {
+				log.error("不支持的embedding类型:{}", embeddingDTO.getEmbeddingType());
+				yield null;
+			}
+		}).toList();
 		CustomEmbeddingRequest embeddingRequest = new CustomEmbeddingRequest(documents, options);
 		return embeddingModel.call(embeddingRequest);
 	}
 
 	public String testTool(String prompt, String id) {
-		ChatResponse chatResponse = inDbMemoryChatClient
-				.prompt(STR."""
-						你是一个智能助手，需要根据用户的输入提供帮助。你可以进行普通对话，也可以在需要时使用工具函数。
+		ChatResponse chatResponse = inDbMemoryChatClient.prompt(STR."""
+					你是一个智能助手，需严格按以下规则交互：
 						用户输入：\{prompt}
-						
-						请按以下规则处理：
-						1. 如果是普通对话（如问候、咨询、闲聊等），直接回答，保持专业和友好
-						2. 如果需要使用工具函数，请参考每个工具函数的详细描述来正确使用：
-						   - getCurrentTime：获取当前系统时间（在处理时间相关操作时，建议先调用此函数）
-						   - createPeriodScheduledTask：创建周期性任务
-						   - createDelayTask：创建延迟执行任务
-						   - getCurrentTimeWithCity：获取指定城市的时间
-						   - getDateArea：获取当前用户所在的地区
-						3. 当用户请求创建延迟任务时，用户输入中明确包含地区（如“北京”“上海”），直接使用该地区进行校验，否则必须先调用 `getDateArea` 获取地区。
-                        4. 如果地区是“北京”，则调用 `createDelayTask` 创建任务。
-                        5. 如果地区不是北京，返回错误提示：“此功能仅限北京地区使用”。
-						
-						请根据用户输入的具体内容，选择合适的响应方式。如果是工具调用，请说明执行结果，如果工具调用的结果不满足，说明具体原因；如果是普通对话，请直接回答。""")
-				.options(OpenAiChatOptions.builder()
-						.model("qwen2.5-72b-instruct")
-						.temperature(0.7)
-						.build())
-				.tools(toolService)
-				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
-				.call()
-				.chatResponse();
+
+					1. 执行流程：
+					   - 每次调用工具函数后立即暂停
+					   - 用自然语言向用户反馈：
+						 * 已执行的操作（函数名）
+						 * 返回的关键数据（JSON关键字段）
+						 * 下一步计划
+
+					2. 多函数调用示例：
+					   [用户] "创建北京明天的提醒"
+					   [系统] "第一步：正在获取当前时间（调用getCurrentTime）..."
+					   → 显示时间结果
+					   [系统] "第二步：验证地区（调用getDateArea）..."
+					   → 显示地区结果
+					   [系统] "最后：正在创建任务（参数：北京+时间）..."
+
+					3. 错误处理：
+					   - 每步失败都立即说明原因
+					   - 给出可操作建议
+
+					4. 保持原有逻辑：
+					   - 地区校验规则不变
+					   - 函数调用条件不变
+					""").options(OpenAiChatOptions.builder().model("qwen2.5-72b-instruct").temperature(0.7).build()).tools(toolService).advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id)).call().chatResponse();
 		assert chatResponse != null;
-		return chatResponse.getResult()
-				.getOutput()
-				.getText();
+		return chatResponse.getResult().getOutput().getText();
 	}
 }
