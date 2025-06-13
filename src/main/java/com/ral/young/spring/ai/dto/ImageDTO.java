@@ -14,4 +14,6 @@ public class ImageDTO {
 	private String imageUrl;
 
 	private String prompt;
+
+	private Integer id;
 }

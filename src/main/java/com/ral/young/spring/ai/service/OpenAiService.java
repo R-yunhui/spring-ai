@@ -1,5 +1,6 @@
 package com.ral.young.spring.ai.service;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import com.ral.young.spring.ai.constant.CommonConstant;
 import com.ral.young.spring.ai.dto.EmbeddingDTO;
@@ -23,6 +24,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
 import org.springframework.ai.deepseek.DeepSeekChatModel;
+import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
@@ -88,7 +90,26 @@ public class OpenAiService {
 				.build();
 		this.inDbMemoryChatClient = ChatClient
 				.builder(openAiChatModel)
-				.defaultSystem("你是一个助手，回答问题的同时，保持语言的简洁和专业。回复的结果控制在200字左右。")
+				.defaultSystem("""
+							你是一个智能助手，需严格遵循以下交互规则：
+							1. 请求分类处理：
+							   - 普通对话（问候/咨询）：直接友好回答
+							   - 工具型请求：按步骤执行并实时反馈
+							2. 工具调用规范：
+							   ■ 每次函数调用后立即暂停
+							   ■ 反馈三要素：
+							      ✓ 执行操作（函数名）
+							      ✓ 关键结果数据
+							      ✓ 后续行动计划
+							   ■ 多步骤示例：
+							      [获取时间] → [验证地区] → [执行任务]
+							3. 错误处理：
+							   - 即时说明失败原因
+							   - 提供修正建议
+							4. 地区规则：
+							   - 延迟任务必须校验北京地区
+							   - 用户显式声明地区时可跳过校验
+						""")
 				.defaultAdvisors(List.of(dbChatMemoryAdvisor))
 				.build();
 	}
@@ -165,35 +186,38 @@ public class OpenAiService {
 		return embeddingModel.call(embeddingRequest);
 	}
 
-	public String testTool(String prompt, String id) {
-		ChatResponse chatResponse = inDbMemoryChatClient.prompt(STR."""
-					你是一个智能助手，需严格按以下规则交互：
-						用户输入：\{prompt}
+	public Flux<String> testTool(ImageDTO imageDTO) {
+		OpenAiChatOptions options = OpenAiChatOptions
+				.builder()
+				.model("qwen2.5-72b-instruct")
+				.temperature(0.7)
+				.build();
+		UserMessage.Builder builder = UserMessage.builder()
+				.text(STR."""
+						用户输入：
+						\{imageDTO.getPrompt()}
 
-					1. 执行流程：
-					   - 每次调用工具函数后立即暂停
-					   - 用自然语言向用户反馈：
-						 * 已执行的操作（函数名）
-						 * 返回的关键数据（JSON关键字段）
-						 * 下一步计划
-
-					2. 多函数调用示例：
-					   [用户] "创建北京明天的提醒"
-					   [系统] "第一步：正在获取当前时间（调用getCurrentTime）..."
-					   → 显示时间结果
-					   [系统] "第二步：验证地区（调用getDateArea）..."
-					   → 显示地区结果
-					   [系统] "最后：正在创建任务（参数：北京+时间）..."
-
-					3. 错误处理：
-					   - 每步失败都立即说明原因
-					   - 给出可操作建议
-
-					4. 保持原有逻辑：
-					   - 地区校验规则不变
-					   - 函数调用条件不变
-					""").options(OpenAiChatOptions.builder().model("qwen2.5-72b-instruct").temperature(0.7).build()).tools(toolService).advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id)).call().chatResponse();
-		assert chatResponse != null;
-		return chatResponse.getResult().getOutput().getText();
+						请按以下要求进行响应：
+						1. 如果是问候/常识问题，直接回答
+						2. 涉及工具调用时：
+						   - 分步执行并实时报告
+						   - 保持地区校验逻辑
+						3. 回答需：
+						   - 普通对话：简洁友好
+						   - 工具操作：结构化反馈
+						""");
+		if (StrUtil.isNotBlank(imageDTO.getImageUrl())) {
+			Media media = Media.builder()
+					.data(imageDTO.getImageUrl())
+					.mimeType(MimeTypeUtils.IMAGE_JPEG)
+					.build();
+			builder.media(media);
+		}
+		UserMessage userMessage = builder.build();
+		return inDbMemoryChatClient.prompt(new Prompt(Collections.singletonList(userMessage), options))
+				.tools(toolService)
+				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, imageDTO.getId()))
+				.stream()
+				.content();
 	}
 }

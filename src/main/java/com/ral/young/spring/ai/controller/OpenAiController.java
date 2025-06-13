@@ -5,6 +5,7 @@ import com.ral.young.spring.ai.dto.ImageDTO;
 import com.ral.young.spring.ai.entity.CustomEmbeddingResponse;
 import com.ral.young.spring.ai.service.OpenAiService;
 import jakarta.annotation.Resource;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,9 +45,9 @@ public class OpenAiController {
 		return openAiService.deepSeek(prompt);
 	}
 
-	@GetMapping(value = "/open-ai/test-tool")
-	public String testTool(@RequestParam(value = "prompt") String prompt, @RequestParam(value = "conversationId") String conversationId) {
-		return openAiService.testTool(prompt, conversationId);
+	@PostMapping(value = "/open-ai/test-tool", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public Flux<String> testTool(@RequestBody ImageDTO imageDTO) {
+		return openAiService.testTool(imageDTO);
 	}
 
 	@GetMapping(value = "/open-ai/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

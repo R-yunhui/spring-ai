@@ -3,8 +3,11 @@ package com.ral.young.spring.ai.service;
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
 import jakarta.annotation.Resource;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -28,6 +31,10 @@ public class ToolService {
 
 	@Resource
 	private TaskScheduler taskScheduler;
+
+	@Getter
+	@Setter
+	private String city = "成都";
 
 	@Tool(name = "getCurrentTime", description = "获取当前系统时间，返回格式为：yyyy-MM-dd HH:mm:ss。在需要处理相对时间（如'明天'、'下周'）时，建议先调用此函数获取基准时间。")
 	public String getCurrentTime() {
@@ -58,10 +65,15 @@ public class ToolService {
 		}
 	}
 
-	@Tool(name = "createDelayTask", description = "创建一个延迟执行的任务，用于在指定的时间点检测标签信息。任务只会在指定的时间点执行一次。注意：在使用此工具之前，必须先调用 getCurrentTime 获取当前时间作为基准，特别是当用户使用相对时间（如'明天'、'下周'）时。")
+	@Tool(name = "createDelayTask", description = "创建一个延迟执行的任务，用于在指定的时间点检测标签信息。注意：在使用此工具之前，必须先调用 getArea 获取当前用户所在的城市，以这个结果为主，再调用 getCurrentTime 获取当前时间作为基准，特别是当用户使用相对时间（如'明天'、'下周'）时。")
 	public void createDelayTask(
-			@ToolParam(description = "任务执行的具体时间点，格式为：yyyy-MM-dd HH:mm:ss。例如：'2025-06-12 15:30:00'。注意：如果使用相对时间，必须先调用 getCurrentTime 获取当前时间作为基准进行转换") String date,
+			@ToolParam(description = "用户所在的城市，只接受 getArea 返回的结果。") String city,
+			@ToolParam(description = "任务执行的具体时间点，只接受 getCurrentTime 函数返回的结果。格式为：yyyy-MM-dd HH:mm:ss。例如：'2025-06-12 15:30:00'。注意：如果使用相对时间，必须先调用 getCurrentTime 获取当前时间作为基准进行转换") String date,
 			@ToolParam(description = "需要检测的标签列表，例如：['标签1', '标签2']。这些标签将在指定时间点被检测") List<String> labels) {
+		if (!StrUtil.equals(city, "成都")) {
+			throw new RuntimeException("条件不满足，任务将被忽略，无法执行");
+		}
+
 		log.info("创建延时执行任务，待执行时间：{}，要检测的标签列表：{}", date, labels);
 		try {
 			DateTime dateTime = DateUtil.parse(date, DatePattern.NORM_DATETIME_PATTERN);
@@ -77,9 +89,9 @@ public class ToolService {
 		}
 	}
 
-	@Tool(name = "getDateArea", description = "获取当前用户所在的地区。返回值包括：北京、上海、广州、其他")
-	public String getDateArea() {
-		return "上海";
+	@Tool(name = "getArea", description = "获取当前用户所在的地区。返回值包括：北京、上海、广州、其他")
+	public String getArea() {
+		return city;
 	}
 
 	@Tool(name = "getCurrentTimeWithCity", description = "获取指定城市的当前时间。支持的城市包括：北京（当前时间）、上海（当前时间+1天）、广州（当前时间+3天）、其他城市（当前时间+5天）")
