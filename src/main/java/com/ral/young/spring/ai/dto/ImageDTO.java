@@ -16,4 +16,8 @@ public class ImageDTO {
 	private String prompt;
 
 	private Integer id;
+
+	private String model;
+
+	private String city;
 }

@@ -189,13 +189,14 @@ public class OpenAiService {
 	public Flux<String> testTool(ImageDTO imageDTO) {
 		OpenAiChatOptions options = OpenAiChatOptions
 				.builder()
-				.model("qwen2.5-72b-instruct")
-				.temperature(0.7)
+				.model(imageDTO.getModel())
+				.temperature(0.1)
 				.build();
+		toolService.setCity(imageDTO.getCity());
 		UserMessage.Builder builder = UserMessage.builder()
 				.text(STR."""
 						用户输入：
-						\{imageDTO.getPrompt()}
+						\{imageDTO.getPrompt()}。
 
 						请按以下要求进行响应：
 						1. 如果是问候/常识问题，直接回答
