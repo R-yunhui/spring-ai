@@ -1,8 +1,10 @@
 package com.ral.young.spring.ai.controller;
 
+import com.ral.young.spring.ai.dto.CvChatMessage;
 import com.ral.young.spring.ai.dto.EmbeddingDTO;
 import com.ral.young.spring.ai.dto.ImageDTO;
 import com.ral.young.spring.ai.entity.CustomEmbeddingResponse;
+import com.ral.young.spring.ai.service.CvAgentService;
 import com.ral.young.spring.ai.service.OpenAiService;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -29,6 +31,8 @@ public class OpenAiController {
 
 	@Resource
 	private OpenAiService openAiService;
+	@Resource
+	private CvAgentService cvAgentService;
 
 	@GetMapping(value = "/open-ai/chat")
 	public String chat(@RequestParam(value = "prompt") String prompt) {
@@ -63,5 +67,10 @@ public class OpenAiController {
 	@PostMapping(value = "/open-ai/embedding")
 	public CustomEmbeddingResponse embedding(@RequestBody List<EmbeddingDTO> embeddingDTOList) {
 		return openAiService.embedding(embeddingDTOList);
+	}
+
+	@PostMapping(value = "/open-ai/cv-agent")
+	public String cvAgent(@RequestBody CvChatMessage cvChatMessage) {
+		return cvAgentService.chat(cvChatMessage);
 	}
 }

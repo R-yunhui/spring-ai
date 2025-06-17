@@ -6,10 +6,13 @@ import org.springframework.boot.autoconfigure.web.client.RestClientBuilderConfig
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -22,7 +25,7 @@ import java.util.Map;
 public class OpenAiConfig {
 
 	static MultiValueMap<String, String> additionalHttpHeader = MultiValueMap.fromSingleValue(Map.of(
-			"Connection", "keep-alive"
+
 	));
 
 	@Bean
@@ -37,6 +40,11 @@ public class OpenAiConfig {
 	public RestClient.Builder restClientBuilder(RestClientBuilderConfigurer restClientBuilderConfigurer) {
 		return restClientBuilderConfigurer.configure(RestClient.builder()
 				.defaultHeaders(h -> h.addAll(additionalHttpHeader))
-		);
+		).requestFactory(new JdkClientHttpRequestFactory(
+				HttpClient.newBuilder()
+						.version(HttpClient.Version.HTTP_1_1) // 强制 HTTP/1.1
+						.connectTimeout(Duration.ofSeconds(30)) // 连接超时 30s
+						.build()
+		));
 	}
 }

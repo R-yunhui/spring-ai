@@ -15,7 +15,6 @@ import org.springframework.ai.model.Model;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 
 import java.util.List;
 import java.util.Optional;

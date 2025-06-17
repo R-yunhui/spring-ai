@@ -13,9 +13,9 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
-      url: redis://:Koala_Redis.20Xx..A..@192.168.2.179:46379
+      url: redis://:Koala_Redis.20Xx..A..@192.168.2.180:46379
   datasource:
-    url: jdbc:mysql://192.168.2.179:43306/ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://192.168.2.180:43306/ai?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
     username: root
     password: Koala_MySQL#20Xx..A..
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -105,7 +105,8 @@ spring:
                 Upgrade: null
             completionsPath: /v1/services/aigc/text2image/image-synthesis
       chat:
-        base-url: http://192.168.2.54:9015
+        base-url: https://dashscope.aliyuncs.com
+        completions-path: /compatible-mode/v1/chat/completions
       #        options:
       #          http-headers:
       #            Connection: keep-alive
