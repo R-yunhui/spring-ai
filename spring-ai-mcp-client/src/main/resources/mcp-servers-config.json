@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "weather": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-Dspring.main.web-application-type=none",
+        "-Dlogging.pattern.console=",
+        "-jar",
+        "D:\\ryh\\personal\\workspace\\spring-ai\\spring-ai-mcp-server\\target\\spring-ai-mcp-server-1.0-SNAPSHOT.jar"
+      ],
+      "env": {}
+    },
+    "mcp-server-hotnews": {
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "@wopal/mcp-server-hotnews"
+      ]
+    },
+    "mysql": {
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": [
+        "mysql-mcp-server"
+      ],
+      "env": {
+        "MYSQL_HOST": "192.168.2.179",
+        "MYSQL_PORT": "43306",
+        "MYSQL_USER": "root",
+        "MYSQL_PASSWORD": "Koala_MySQL#20Xx..A..",
+        "MYSQL_DATABASE": "koala_user_alarm"
+      }
+    }
+  }
+}
