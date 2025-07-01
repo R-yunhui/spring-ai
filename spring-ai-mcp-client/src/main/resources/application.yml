@@ -1,8 +1,6 @@
 spring:
   application:
     name: mcp-client
-  main:
-    web-application-type: none
   ai:
     dashscope:
       api-key: sk-dbc8ed51cec741d388e0ca023d33b551
@@ -30,6 +28,7 @@ logging:
         spec: DEBUG
 
 server:
+  port: 8080
   servlet:
     encoding:
       charset: UTF-8

@@ -30,6 +30,13 @@
         "MYSQL_PASSWORD": "Koala_MySQL#20Xx..A..",
         "MYSQL_DATABASE": "koala_user_alarm"
       }
+    },
+    "12306-mcp": {
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "12306-mcp"
+      ]
     }
-  }
+}
 }
