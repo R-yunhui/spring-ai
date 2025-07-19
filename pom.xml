@@ -12,6 +12,8 @@
         <module>spring-ai-mcp-server</module>
         <module>spring-ai-mcp-client</module>
         <module>spring-ai-prompt-template</module>
+        <module>spring-ai-mcp-webflux-client</module>
+        <module>spring-ai-mcp-streamable-client</module>
     </modules>
 
     <parent>
@@ -84,11 +86,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
         <!-- spring-ai-alibaba -->
 <!--        <dependency>-->
 <!--            <groupId>com.alibaba.cloud.ai</groupId>-->

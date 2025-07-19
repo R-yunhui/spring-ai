@@ -1,6 +1,7 @@
 package com.ral.young.controller;
 
 import com.ral.young.service.McpService;
+import com.ral.young.service.VideoSearchService;
 import com.ral.young.vo.ChatRequestVO;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +22,17 @@ public class McpController {
 
 	@Resource
 	private McpService mcpService;
+	@Resource
+	private VideoSearchService videoSearchService;
 
 	@PostMapping("/chat/")
 	public String chat(@RequestBody ChatRequestVO chatRequestVO) {
 		return mcpService.chatWithMcp(chatRequestVO);
+	}
+
+	@PostMapping("/video/search")
+	public String videoSearch(@RequestBody ChatRequestVO chatRequestVO) {
+		return videoSearchService.videoSearch(chatRequestVO);
 	}
 
 	@GetMapping("/tools")
