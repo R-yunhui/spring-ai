@@ -1,8 +1,13 @@
 package com.ral.young.tools;
 
+import com.ral.young.service.VideoSearchService;
+import jakarta.annotation.Resource;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,8 +25,11 @@ import java.util.ArrayList;
  */
 @Service
 @Slf4j
-@SuppressWarnings("preview")
 public class VideoSearchTools {
+
+	@Resource
+	@Lazy
+	private VideoSearchService videoSearchService;
 
 	/**
 	 * 用户问题关键字拆分工具
@@ -180,6 +188,7 @@ public class VideoSearchTools {
 	/**
 	 * 视频检索报告生成工具
 	 * 这是视频检索流程的最后一步，根据筛选结果生成报告，也可独立使用
+	 * 直接返回生成的报告，不需要后续主控大模型的润色
 	 *
 	 * @param query          用户原始查询
 	 * @param filteredVideos 筛选后的视频列表，可选参数
@@ -188,7 +197,9 @@ public class VideoSearchTools {
 	 */
 	@Tool(description = "生成报告工具，支持两种主要场景：" +
 			"1) 依赖检索结果：使用前面步骤检索和筛选的视频结果生成视频检索报告；" +
-			"2) 独立生成报告：不依赖检索结果，直接根据用户查询和意图生成通用报告。")
+			"2) 独立生成报告：不依赖检索结果，直接根据用户查询和意图生成通用报告。"
+			, returnDirect = true
+	)
 	public Map<String, Object> generateSearchReport(
 			@ToolParam(description = "用户的原始查询") String query,
 			@ToolParam(description = "筛选后的视频列表，可选参数，如果不提供则生成通用报告") List<Map<String, Object>> filteredVideos,
@@ -228,85 +239,144 @@ public class VideoSearchTools {
 	 * 生成视频检索报告
 	 */
 	private Map<String, Object> generateVideoSearchReport(String query, List<Map<String, Object>> filteredVideos) {
-		// todo 需要调用LLM 生成通用报告
+		// 调用大模型生成视频检索报告
+		// 构建系统提示词
+		String systemPrompt = """
+				你是一个专业的视频检索报告生成助手。请根据提供的视频检索结果，生成一份格式规范的Markdown格式报告。
+				报告应当客观、专业、简洁，包含以下部分：
 
-		Map<String, Object> report = new HashMap<>();
-		report.put("type", "video_search");
+				1. 报告标题和摘要：包括检索条件、结果数量和最佳匹配
+				2. 检索结果详情：按相关性排序的视频列表，包含标题、描述和相关性评分
+				3. 关键时间点：如果有关键帧信息，请提取并展示
+				4. 分析与建议：基于检索结果提供简要分析和建议
 
-		// 报告摘要
-		Map<String, Object> summary = new HashMap<>();
-		summary.put("totalResults", filteredVideos != null ? filteredVideos.size() : 0);
-		summary.put("bestMatch", (filteredVideos == null || filteredVideos.isEmpty()) ?
-				"未找到匹配视频" : STR."最佳匹配: \{filteredVideos.getFirst().get("title")}");
-		report.put("summary", summary);
+				请使用Markdown语法格式化报告，包括标题(#)、列表(-)、表格等元素，确保报告结构清晰、易读。
+				不要添加任何额外的解释或前后文，直接返回Markdown格式的报告内容。
+				""";
 
-		// 结果列表
+		// 构建用户提示词
+		StringBuilder userPromptBuilder = new StringBuilder();
+		userPromptBuilder.append("请根据以下信息生成视频检索报告：\n\n");
+		userPromptBuilder.append("用户查询: ").append(query).append("\n\n");
+		userPromptBuilder.append("检索结果数量: ").append(filteredVideos != null ? filteredVideos.size() : 0).append("\n\n");
+
+		// 添加视频信息
 		if (filteredVideos != null && !filteredVideos.isEmpty()) {
-			List<Map<String, Object>> results = new ArrayList<>();
+			userPromptBuilder.append("检索到的视频:\n");
 			for (int i = 0; i < filteredVideos.size(); i++) {
 				Map<String, Object> video = filteredVideos.get(i);
-				Map<String, Object> result = new HashMap<>();
-				result.put("rank", i + 1);
-				result.put("title", video.get("title"));
-				result.put("description", video.get("description"));
-				result.put("relevanceScore", video.get("relevanceScore"));
+				userPromptBuilder.append(i + 1).append(". 标题: ").append(video.get("title")).append("\n");
+				userPromptBuilder.append("   描述: ").append(video.get("description")).append("\n");
+				userPromptBuilder.append("   相关性评分: ").append(video.get("relevanceScore")).append("\n");
 
-				// 提取关键时间点（如果有）
-				if (video.containsKey("keyFrames")) {
-					List<Map<String, Object>> keyFrames = (List<Map<String, Object>>) video.get("keyFrames");
-					List<String> timelines = new ArrayList<>();
-					for (Map<String, Object> keyFrame : keyFrames) {
-						timelines.add(STR."\{keyFrame.get("timestamp")}秒: \{keyFrame.get("description")}");
+				// 添加人物识别信息
+				if (video.containsKey("personDetection")) {
+					Map<String, Object> personDetection = (Map<String, Object>) video.get("personDetection");
+					userPromptBuilder.append("   人物识别信息:\n");
+					userPromptBuilder.append("     - 人物数量: ").append(personDetection.get("personCount")).append("\n");
+
+					if (personDetection.containsKey("targetPerson")) {
+						Map<String, Object> targetPerson = (Map<String, Object>) personDetection.get("targetPerson");
+						Map<String, Object> attributes = (Map<String, Object>) targetPerson.get("attributes");
+
+						userPromptBuilder.append("     - 目标人物属性:\n");
+						userPromptBuilder.append("       * 性别: ").append(attributes.get("gender")).append("\n");
+
+						if (attributes.containsKey("upperClothing")) {
+							Map<String, Object> upperClothing = (Map<String, Object>) attributes.get("upperClothing");
+							userPromptBuilder.append("       * 上衣: ").append(upperClothing.get("color"))
+									.append(" ").append(upperClothing.get("type"))
+									.append(" (置信度: ").append(upperClothing.get("confidence")).append(")\n");
+						}
+
+						if (attributes.containsKey("lowerClothing")) {
+							Map<String, Object> lowerClothing = (Map<String, Object>) attributes.get("lowerClothing");
+							userPromptBuilder.append("       * 裤子: ").append(lowerClothing.get("color"))
+									.append(" ").append(lowerClothing.get("type"))
+									.append(" (置信度: ").append(lowerClothing.get("confidence")).append(")\n");
+						}
 					}
-					result.put("keyTime points", timelines);
 				}
-				results.add(result);
+
+				// 添加关键帧信息
+				if (video.containsKey("keyFrames")) {
+					userPromptBuilder.append("   关键时间点:\n");
+					List<Map<String, Object>> keyFrames = (List<Map<String, Object>>) video.get("keyFrames");
+					for (Map<String, Object> keyFrame : keyFrames) {
+						userPromptBuilder.append("     - ").append(keyFrame.get("timestamp"))
+								.append("秒: ").append(keyFrame.get("description")).append("\n");
+					}
+				}
+				userPromptBuilder.append("\n");
 			}
-			report.put("results", results);
+		} else {
+			userPromptBuilder.append("未找到匹配的视频。\n");
 		}
 
-		// 简单建议
-		List<String> recommendations = new ArrayList<>();
-		if (filteredVideos != null && !filteredVideos.isEmpty()) {
-			recommendations.add("建议优先查看排名靠前的视频，相关性更高");
-		} else {
-			recommendations.add("未找到匹配视频，建议调整搜索条件");
-		}
-		report.put("recommendations", recommendations);
+		// 调用大模型生成报告
+		SystemMessage systemMessage = new SystemMessage(systemPrompt);
+		UserMessage userMessage = new UserMessage(userPromptBuilder.toString());
+
+		String markdownReport = videoSearchService.getMarkdownReport(systemMessage, userMessage);
+
+		// 构建返回的报告对象
+		Map<String, Object> report = new HashMap<>();
+		report.put("type", "video_search");
+		report.put("format", "markdown");
+		report.put("content", markdownReport);
+		report.put("query", query);
+		report.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+		report.put("resultCount", filteredVideos != null ? filteredVideos.size() : 0);
 
 		return report;
 	}
+
+
 
 	/**
 	 * 生成通用报告（不依赖检索结果）
 	 */
 	private Map<String, Object> generateGenericReport(String query, String reportType) {
-		// todo 需要调用LLM 生成通用报告
+		// 调用大模型生成通用报告
+		// 构建系统提示词
+		String systemPrompt = """
+				你是一个专业的报告生成助手。请根据用户的查询，生成一份格式规范的Markdown格式报告。
+				报告应当客观、专业、简洁，根据用户查询的主题和意图进行深入分析。
 
+				报告应包含以下部分：
+				1. 报告标题：简明扼要地概括主题
+				2. 摘要：对主题的简要概述
+				3. 主要内容：分析用户查询的关键点，提供相关信息和见解
+				4. 结论与建议：基于分析提供的结论和建议
+				5. 参考资料：如有必要，列出相关参考资料
+
+				请使用Markdown语法格式化报告，包括标题(#)、列表(-)、表格等元素，确保报告结构清晰、易读。
+				不要添加任何额外的解释或前后文，直接返回Markdown格式的报告内容。
+				""";
+
+		// 构建用户提示词
+		String userPrompt = String.format("""
+				请根据以下查询生成一份专业的报告：
+
+				查询: %s
+				报告类型: %s
+
+				请分析查询意图，提供相关的深入见解，并生成一份结构完整的Markdown格式报告。
+				""", query, reportType != null ? reportType : "general");
+
+		// 调用大模型生成报告
+		SystemMessage systemMessage = new SystemMessage(systemPrompt);
+		UserMessage userMessage = new UserMessage(userPrompt);
+
+		String markdownReport = videoSearchService.getMarkdownReport(systemMessage, userMessage);
+
+		// 构建返回的报告对象
 		Map<String, Object> report = new HashMap<>();
 		report.put("type", reportType != null ? reportType : "general");
-
-		// 通用报告结构
-		report.put("sections", List.of(
-				Map.of(
-						"title", "分析概述",
-						"content", "这是基于用户查询的分析概述"
-				),
-				Map.of(
-						"title", "详细分析",
-						"content", "这是详细分析内容"
-				),
-				Map.of(
-						"title", "结论与建议",
-						"content", "这是结论与建议内容"
-				)
-		));
-
-		// 添加参考资料
-		report.put("references", List.of(
-				"参考资料1",
-				"参考资料2"
-		));
+		report.put("format", "markdown");
+		report.put("content", markdownReport);
+		report.put("query", query);
+		report.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
 		return report;
 	}
