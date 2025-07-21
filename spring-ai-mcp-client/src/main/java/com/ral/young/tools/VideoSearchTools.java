@@ -1,25 +1,21 @@
 package com.ral.young.tools;
 
-import com.ral.young.service.VideoSearchService;
-import jakarta.annotation.Resource;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import com.ral.young.utils.VideoDataUtils;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author renyh
- * @description 视频检索服务
+ * @description 视频检索相关工具
  * @date 2025/7/1 10:00
  * @since 1.0.0
  */
@@ -27,402 +23,349 @@ import java.util.ArrayList;
 @Slf4j
 public class VideoSearchTools {
 
-	@Resource
-	@Lazy
-	private VideoSearchService videoSearchService;
-
 	/**
 	 * 用户问题关键字拆分工具
-	 * 这是视频检索流程的第一步，用于从用户查询中提取关键词
+	 * 用于从用户查询中提取关键词
 	 *
 	 * @param query 用户查询问题
 	 * @return 拆分后的关键词列表
 	 */
-	@Tool(description = "第一步：从用户查询中提取关键词，用于视频检索。这是视频检索流程的起点，提取的关键词将用于后续的关键词检索。")
+	@Tool(description = "从用户查询中提取关键词，用于视频检索。这是视频检索流程的第一步，提取的关键词将用于后续的视频检索。")
 	public Map<String, Object> extractKeywords(
 			@ToolParam(description = "用户的查询问题，例如'查找穿着黑色上衣白色牛仔裤的男人'") String query) {
 
 		log.info("调用关键词拆分工具，查询问题: {}", query);
 
-		// 模拟提取的关键词 - 针对人物外观查询
+		// 模拟提取的关键词
 		List<Map<String, Object>> keywords = new ArrayList<>();
-		keywords.add(Map.of("keyword", "黑色上衣", "weight", 0.95));
-		keywords.add(Map.of("keyword", "白色牛仔裤", "weight", 0.95));
-		keywords.add(Map.of("keyword", "男人", "weight", 0.90));
-		keywords.add(Map.of("keyword", "人物", "weight", 0.85));
 
-		Map<String, Object> result = new HashMap<>();
-		result.put("keywords", keywords);
-		result.put("mainTopic", "人物外观");
-		result.put("intentType", "人物视频检索");
-		result.put("visualAttributes", Map.of(
-				"clothing", List.of("黑色上衣", "白色牛仔裤"),
-				"gender", "男性",
-				"age", "未指定"
-		));
+		if (query.contains("黑色") || query.contains("上衣") || query.contains("牛仔裤") || query.contains("男")) {
+			// 人物外观查询
+			keywords.add(Map.of("keyword", "黑色上衣", "weight", 0.95));
+			keywords.add(Map.of("keyword", "白色牛仔裤", "weight", 0.95));
+			keywords.add(Map.of("keyword", "男人", "weight", 0.90));
+			keywords.add(Map.of("keyword", "人物", "weight", 0.85));
 
-		return result;
+			Map<String, Object> result = new HashMap<>();
+			result.put("keywords", keywords);
+			result.put("mainTopic", "人物外观");
+			result.put("intentType", "人物视频检索");
+			result.put("visualAttributes", Map.of(
+					"clothing", List.of("黑色上衣", "白色牛仔裤"),
+					"gender", "男性",
+					"age", "未指定"
+			));
+
+			return result;
+		} else if (query.contains("入侵") || query.contains("异常") || query.contains("事件")) {
+			// 安全事件查询
+			keywords.add(Map.of("keyword", "入侵", "weight", 0.95));
+			keywords.add(Map.of("keyword", "异常行为", "weight", 0.90));
+			keywords.add(Map.of("keyword", "安全事件", "weight", 0.85));
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("keywords", keywords);
+			result.put("mainTopic", "安全事件");
+			result.put("intentType", "事件检测");
+			result.put("eventAttributes", Map.of(
+					"eventType", List.of("入侵", "异常行为"),
+					"severity", "高",
+					"timeRange", "全天"
+			));
+
+			return result;
+		} else if (query.contains("烟") || query.contains("火") || query.contains("烟雾")) {
+			// 火灾安全查询
+			keywords.add(Map.of("keyword", "烟雾", "weight", 0.95));
+			keywords.add(Map.of("keyword", "火灾", "weight", 0.90));
+			keywords.add(Map.of("keyword", "安全隐患", "weight", 0.85));
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("keywords", keywords);
+			result.put("mainTopic", "火灾安全");
+			result.put("intentType", "事件检测");
+			result.put("eventAttributes", Map.of(
+					"eventType", List.of("烟雾", "火灾"),
+					"severity", "高",
+					"timeRange", "全天"
+			));
+
+			return result;
+		} else {
+			// 通用查询
+			keywords.add(Map.of("keyword", "视频", "weight", 0.80));
+			keywords.add(Map.of("keyword", query, "weight", 0.95));
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("keywords", keywords);
+			result.put("mainTopic", "通用查询");
+			result.put("intentType", "视频检索");
+
+			return result;
+		}
 	}
 
 	/**
-	 * 根据关键词检索视频工具
-	 * 这是视频检索流程的第二步(A)，使用从extractKeywords获取的关键词进行检索
+	 * 综合视频检索工具
+	 * 整合关键词检索、向量检索和精确筛选功能
 	 *
-	 * @param keywords 关键词列表，来自extractKeywords的输出
-	 * @param limit    返回结果数量上限
-	 * @return 匹配的视频列表
-	 */
-	@Tool(description = "第二步(A)：使用关键词检索视频。依赖于extractKeywords工具的输出，使用提取的关键词列表进行视频检索。")
-	public Map<String, Object> searchVideosByKeywords(
-			@ToolParam(description = "关键词列表，应使用extractKeywords工具的输出中的keywords字段") List<String> keywords,
-			@ToolParam(description = "返回结果数量上限，默认20") Integer limit) {
-
-		log.info("调用关键词视频检索工具，关键词: {}, 限制数量: {}", keywords, limit);
-
-		// 模拟检索结果 - 人物外观相关视频
-		List<Map<String, Object>> videos = new ArrayList<>();
-		videos.add(createPersonVideo("vid-001", "商场监控片段A",
-				"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.94));
-		videos.add(createPersonVideo("vid-002", "街道监控记录B",
-				"十字路口东南角，一名穿黑色T恤白色裤子的男子正在等待过马路", 0.86));
-		videos.add(createPersonVideo("vid-003", "购物中心出入口",
-				"购物中心北门，多名顾客进出，其中包括一名穿黑色上衣的男性", 0.72));
-
-		Map<String, Object> result = new HashMap<>();
-		result.put("videos", videos);
-		result.put("totalMatches", videos.size());
-		result.put("searchTime", "0.35s");
-
-		log.info("关键词视频检索工具 检索结果数量: {}", videos.size());
-		return result;
-	}
-
-	/**
-	 * 根据用户问题embedding检索视频工具
-	 * 这是视频检索流程的第二步(B)，使用用户查询的语义向量进行检索
-	 *
-	 * @param query 用户查询问题，原始查询文本
-	 * @param limit 返回结果数量上限
-	 * @return 匹配的视频列表
-	 */
-	@Tool(description = "第二步(B)：使用查询的语义向量检索视频。与关键词检索并行执行，直接使用用户原始查询进行语义向量检索。")
-	public Map<String, Object> searchVideosByEmbedding(
-			@ToolParam(description = "用户的完整查询，原始查询文本") String query,
-			@ToolParam(description = "返回结果数量上限，默认20") Integer limit) {
-
-		log.info("调用向量检索工具，查询: {}, 限制数量: {}", query, limit);
-
-		// 模拟检索结果 - 人物外观相关视频
-		List<Map<String, Object>> videos = new ArrayList<>();
-		videos.add(createPersonVideo("vid-001", "商场监控片段A",
-				"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.95));
-		videos.add(createPersonVideo("vid-004", "停车场监控C",
-				"地下停车场B2层，一名身穿黑色夹克和浅色裤子的男性正在走向出口", 0.87));
-		videos.add(createPersonVideo("vid-005", "咖啡厅内部视频",
-				"咖啡厅靠窗座位，一名穿黑色上衣白色裤子的男顾客正在使用笔记本电脑", 0.82));
-
-		Map<String, Object> result = new HashMap<>();
-		result.put("videos", videos);
-		result.put("totalMatches", videos.size());
-		result.put("searchTime", "0.42s");
-
-		log.info("embedding检索视频工具 检索结果数量: {}", videos.size());
-		return result;
-	}
-
-	/**
-	 * 大模型精确筛选视频工具
-	 * 这是视频检索流程的第三步，对前两步检索结果进行精确筛选
-	 *
-	 * @param query          用户查询问题
-	 * @param videoList      待筛选的视频列表，来自searchVideosByKeywords和searchVideosByEmbedding的合并结果
-	 * @param filterCriteria 筛选条件
+	 * @param query        用户原始查询
+	 * @param keywords     关键词列表，来自extractKeywords的输出
+	 * @param limit        返回结果数量上限
+	 * @param useEmbedding 是否使用向量检索，默认true
 	 * @return 筛选后的视频列表
 	 */
-	@Tool(description = "第三步：对检索结果进行精确筛选。依赖于searchVideosByKeywords和searchVideosByEmbedding的输出，" +
-			"将两者结果合并后进行语义理解筛选，得到最终的精确结果。")
-	public Map<String, Object> filterVideoResults(
+	@Tool(description = "综合视频检索工具，整合了关键词检索、向量检索和精确筛选功能。提供关键词后，工具会自动执行检索和筛选，返回最终结果。")
+	public Map<String, Object> searchVideos(
 			@ToolParam(description = "用户的原始查询") String query,
-			@ToolParam(description = "待筛选的视频列表，应合并searchVideosByKeywords和searchVideosByEmbedding的结果") List<Map<String, Object>> videoList,
-			@ToolParam(description = "筛选条件，可选") Map<String, Object> filterCriteria) {
+			@ToolParam(description = "关键词列表，应使用extractKeywords工具的输出中的keywords字段") List<Map<String, Object>> keywords,
+			@ToolParam(description = "返回结果数量上限，默认10") Integer limit,
+			@ToolParam(description = "是否使用向量检索，默认true") Boolean useEmbedding) {
 
-		log.info("调用视频精筛工具，查询: {}, 视频数量: {}", query, videoList.size());
+		log.info("调用综合视频检索工具，查询: {}, 关键词数量: {}, 限制数量: {}, 使用向量检索: {}",
+				query, keywords.size(), limit, useEmbedding);
 
-		// 模拟筛选结果
-		List<Map<String, Object>> filteredVideos = new ArrayList<>();
-		List<Map<String, Object>> reasoning = new ArrayList<>();
+		// 默认值处理
+		int resultLimit = (limit != null) ? limit : 10;
+		boolean useEmbeddingSearch = (useEmbedding != null) ? useEmbedding : true;
 
-		// 添加筛选后的视频
-		filteredVideos.add(createPersonVideo("vid-001", "商场监控片段A",
-				"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.94));
-		filteredVideos.add(createPersonVideo("vid-005", "咖啡厅内部视频",
-				"咖啡厅靠窗座位，一名穿黑色上衣白色裤子的男顾客正在使用笔记本电脑", 0.82));
+		// 1. 关键词检索
+		List<Map<String, Object>> keywordResults = performKeywordSearch(keywords, resultLimit);
+		log.info("关键词检索结果数量: {}", keywordResults.size());
 
-		// 筛选理由
-		reasoning.add(Map.of(
-				"videoId", "vid-001",
-				"reason", "完全匹配用户查询条件：1)人物穿着黑色上衣；2)人物穿着白色牛仔裤；3)确认为成年男性"
-		));
-		reasoning.add(Map.of(
-				"videoId", "vid-005",
-				"reason", "高度匹配用户查询条件：1)人物穿着黑色上衣；2)人物穿着白色裤子(可能是牛仔裤)；3)确认为成年男性"
-		));
-		reasoning.add(Map.of(
-				"videoId", "vid-002",
-				"reason", "部分匹配但被过滤：虽然人物穿着黑色T恤和白色裤子，但视频质量不足以确认是否为牛仔裤"
-		));
-		reasoning.add(Map.of(
-				"videoId", "vid-004",
-				"reason", "部分匹配但被过滤：人物穿着黑色夹克，但裤子只能确认为浅色，不能确定是否为白色牛仔裤"
-		));
+		// 2. 向量检索（如果启用）
+		List<Map<String, Object>> embeddingResults = new ArrayList<>();
+		if (useEmbeddingSearch) {
+			embeddingResults = performEmbeddingSearch(query, resultLimit);
+			log.info("向量检索结果数量: {}", embeddingResults.size());
+		}
 
+		// 3. 合并结果
+		List<Map<String, Object>> combinedResults = mergeSearchResults(keywordResults, embeddingResults);
+		log.info("合并后结果数量: {}", combinedResults.size());
+
+		// 4. 精确筛选
+		List<Map<String, Object>> filteredVideos = filterResults(query, combinedResults);
+		List<Map<String, Object>> reasoning = generateReasoning(query, filteredVideos);
+
+		// 5. 限制最终结果数量
+		if (filteredVideos.size() > resultLimit) {
+			filteredVideos = filteredVideos.subList(0, resultLimit);
+			reasoning = reasoning.subList(0, resultLimit);
+		}
+
+		// 构建返回结果
 		Map<String, Object> result = new HashMap<>();
 		result.put("filteredVideos", filteredVideos);
 		result.put("reasoning", reasoning);
 		result.put("totalResults", filteredVideos.size());
+		result.put("searchMethods", useEmbeddingSearch ?
+				List.of("keywords", "embedding") : List.of("keywords"));
+		result.put("searchTime", "0.68s");
 
-		log.info("视频精筛工具 筛选结果数量: {}", filteredVideos.size());
+		log.info("综合视频检索工具 最终结果数量: {}", filteredVideos.size());
 		return result;
 	}
 
 	/**
-	 * 视频检索报告生成工具
-	 * 这是视频检索流程的最后一步，根据筛选结果生成报告，也可独立使用
-	 * 直接返回生成的报告，不需要后续主控大模型的润色
-	 *
-	 * @param query          用户原始查询
-	 * @param filteredVideos 筛选后的视频列表，可选参数
-	 * @param reportType     报告类型，可选参数
-	 * @return 生成的报告
+	 * 执行关键词检索
 	 */
-	@Tool(description = "生成报告工具，支持两种主要场景：" +
-			"1) 依赖检索结果：使用前面步骤检索和筛选的视频结果生成视频检索报告；" +
-			"2) 独立生成报告：不依赖检索结果，直接根据用户查询和意图生成通用报告。"
-			, returnDirect = true
-	)
-	public Map<String, Object> generateSearchReport(
-			@ToolParam(description = "用户的原始查询") String query,
-			@ToolParam(description = "筛选后的视频列表，可选参数，如果不提供则生成通用报告") List<Map<String, Object>> filteredVideos,
-			@ToolParam(description = "报告类型，仅在独立生成报告场景下使用") String reportType) {
-
-		String currentTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-		log.info("调用报告生成工具，查询: {}, 视频数量: {}, 报告类型: {}, 当前时间: {}",
-				query,
-				filteredVideos != null ? filteredVideos.size() : 0,
-				reportType,
-				currentTime
-		);
-
-		// 判断报告类型
-		if ((filteredVideos == null || filteredVideos.isEmpty()) &&
-				(reportType != null && !reportType.equals("video_search"))) {
-			// 生成通用报告（不依赖检索结果）
-			return generateGenericReport(query, reportType);
-		} else {
-			// 生成视频检索报告
-			return generateVideoSearchReport(query, filteredVideos);
+	private List<Map<String, Object>> performKeywordSearch(List<Map<String, Object>> keywords, int limit) {
+		// 提取关键词字符串
+		List<String> keywordStrings = new ArrayList<>();
+		for (Map<String, Object> keyword : keywords) {
+			keywordStrings.add((String) keyword.get("keyword"));
 		}
+
+		String keywordsStr = String.join(" ", keywordStrings);
+		List<Map<String, Object>> videos = new ArrayList<>();
+
+		if (keywordsStr.contains("黑色") || keywordsStr.contains("上衣") || keywordsStr.contains("男")) {
+			// 人物外观相关视频
+			videos.add(VideoDataUtils.createPersonVideo("vid-001", "商场监控片段A",
+					"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.94));
+			videos.add(VideoDataUtils.createPersonVideo("vid-002", "街道监控记录B",
+					"十字路口东南角，一名穿黑色T恤白色裤子的男子正在等待过马路", 0.86));
+			videos.add(VideoDataUtils.createPersonVideo("vid-003", "购物中心出入口",
+					"购物中心北门，多名顾客进出，其中包括一名穿黑色上衣的男性", 0.72));
+		} else if (keywordsStr.contains("入侵") || keywordsStr.contains("异常") || keywordsStr.contains("事件")) {
+			// 安全事件相关视频
+			videos.add(VideoDataUtils.createSecurityVideo("vid-101", "仓库后门监控A",
+					"仓库后门区域，一名陌生人尝试撬门进入", 0.96));
+			videos.add(VideoDataUtils.createSecurityVideo("vid-102", "办公区走廊监控B",
+					"办公区走廊，非工作时间有人员活动", 0.88));
+			videos.add(VideoDataUtils.createSecurityVideo("vid-103", "停车场监控C",
+					"地下停车场，有人在车辆间徘徊", 0.79));
+		} else if (keywordsStr.contains("烟") || keywordsStr.contains("火") || keywordsStr.contains("烟雾")) {
+			// 火灾安全相关视频
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-201", "厨房监控A",
+					"厨房区域，炉灶上出现明显烟雾", 0.97));
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-202", "走廊监控B",
+					"三楼走廊，烟雾探测器被触发", 0.89));
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-203", "仓储区监控C",
+					"仓储区角落，有微弱烟雾出现", 0.75));
+		} else {
+			// 通用视频
+			videos.add(VideoDataUtils.createGenericVideo("vid-301", "办公区全景",
+					"办公区日常活动画面", 0.70));
+			videos.add(VideoDataUtils.createGenericVideo("vid-302", "前台接待区",
+					"公司前台接待区域的监控画面", 0.65));
+		}
+
+		return videos;
 	}
 
 	/**
-	 * 确定报告标题
+	 * 执行向量检索
 	 */
-	private String determineReportTitle(String query, String reportType) {
-		if (reportType == null || reportType.equals("video_search")) {
-			return "视频检索报告";
+	private List<Map<String, Object>> performEmbeddingSearch(String query, int limit) {
+		List<Map<String, Object>> videos = new ArrayList<>();
+
+		if (query.contains("黑色") || query.contains("上衣") || query.contains("男")) {
+			// 人物外观相关视频
+			videos.add(VideoDataUtils.createPersonVideo("vid-001", "商场监控片段A",
+					"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.95));
+			videos.add(VideoDataUtils.createPersonVideo("vid-004", "停车场监控C",
+					"地下停车场B2层，一名身穿黑色夹克和浅色裤子的男性正在走向出口", 0.87));
+			videos.add(VideoDataUtils.createPersonVideo("vid-005", "咖啡厅内部视频",
+					"咖啡厅靠窗座位，一名穿黑色上衣白色裤子的男顾客正在使用笔记本电脑", 0.82));
+		} else if (query.contains("入侵") || query.contains("异常") || query.contains("事件")) {
+			// 安全事件相关视频
+			videos.add(VideoDataUtils.createSecurityVideo("vid-101", "仓库后门监控A",
+					"仓库后门区域，一名陌生人尝试撬门进入", 0.98));
+			videos.add(VideoDataUtils.createSecurityVideo("vid-104", "围墙监控D",
+					"公司围墙外，有人徘徊并尝试攀爬", 0.91));
+			videos.add(VideoDataUtils.createSecurityVideo("vid-105", "服务器室入口",
+					"服务器室入口，有未授权人员尝试进入", 0.85));
+		} else if (query.contains("烟") || query.contains("火") || query.contains("烟雾")) {
+			// 火灾安全相关视频
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-201", "厨房监控A",
+					"厨房区域，炉灶上出现明显烟雾", 0.99));
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-204", "电气室监控D",
+					"电气室内，配电箱附近出现异常烟雾", 0.93));
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid-205", "实验室监控",
+					"实验室角落，有化学物质反应产生的烟雾", 0.88));
 		} else {
-			return "主题分析报告";
+			// 通用视频
+			videos.add(VideoDataUtils.createGenericVideo("vid-301", "办公区全景",
+					"办公区日常活动画面", 0.75));
+			videos.add(VideoDataUtils.createGenericVideo("vid-302", "前台接待区",
+					"公司前台接待区域的监控画面", 0.70));
+			videos.add(VideoDataUtils.createGenericVideo("vid-303", "会议室监控",
+					"主会议室的监控画面，显示会议进行中", 0.68));
 		}
+
+		return videos;
 	}
 
 	/**
-	 * 生成视频检索报告
+	 * 合并检索结果
 	 */
-	private Map<String, Object> generateVideoSearchReport(String query, List<Map<String, Object>> filteredVideos) {
-		// 调用大模型生成视频检索报告
-		// 构建系统提示词
-		String systemPrompt = """
-				你是一个专业的视频检索报告生成助手。请根据提供的视频检索结果，生成一份格式规范的Markdown格式报告。
-				报告应当客观、专业、简洁，包含以下部分：
+	private List<Map<String, Object>> mergeSearchResults(List<Map<String, Object>> keywordResults,
+														 List<Map<String, Object>> embeddingResults) {
+		// 使用Set避免重复
+		Set<String> addedIds = new HashSet<>();
+		List<Map<String, Object>> mergedResults = new ArrayList<>();
 
-				1. 报告标题和摘要：包括检索条件、结果数量和最佳匹配
-				2. 检索结果详情：按相关性排序的视频列表，包含标题、描述和相关性评分
-				3. 关键时间点：如果有关键帧信息，请提取并展示
-				4. 分析与建议：基于检索结果提供简要分析和建议
+		// 添加关键词检索结果
+		for (Map<String, Object> video : keywordResults) {
+			String id = (String) video.get("id");
+			if (!addedIds.contains(id)) {
+				mergedResults.add(video);
+				addedIds.add(id);
+			}
+		}
 
-				请使用Markdown语法格式化报告，包括标题(#)、列表(-)、表格等元素，确保报告结构清晰、易读。
-				不要添加任何额外的解释或前后文，直接返回Markdown格式的报告内容。
-				""";
+		// 添加向量检索结果
+		for (Map<String, Object> video : embeddingResults) {
+			String id = (String) video.get("id");
+			if (!addedIds.contains(id)) {
+				mergedResults.add(video);
+				addedIds.add(id);
+			}
+		}
 
-		// 构建用户提示词
-		StringBuilder userPromptBuilder = new StringBuilder();
-		userPromptBuilder.append("请根据以下信息生成视频检索报告：\n\n");
-		userPromptBuilder.append("用户查询: ").append(query).append("\n\n");
-		userPromptBuilder.append("检索结果数量: ").append(filteredVideos != null ? filteredVideos.size() : 0).append("\n\n");
+		return mergedResults;
+	}
 
-		// 添加视频信息
-		if (filteredVideos != null && !filteredVideos.isEmpty()) {
-			userPromptBuilder.append("检索到的视频:\n");
-			for (int i = 0; i < filteredVideos.size(); i++) {
-				Map<String, Object> video = filteredVideos.get(i);
-				userPromptBuilder.append(i + 1).append(". 标题: ").append(video.get("title")).append("\n");
-				userPromptBuilder.append("   描述: ").append(video.get("description")).append("\n");
-				userPromptBuilder.append("   相关性评分: ").append(video.get("relevanceScore")).append("\n");
+	/**
+	 * 精确筛选结果
+	 */
+	private List<Map<String, Object>> filterResults(String query, List<Map<String, Object>> videoList) {
+		List<Map<String, Object>> filteredVideos = new ArrayList<>();
 
-				// 添加人物识别信息
-				if (video.containsKey("personDetection")) {
-					Map<String, Object> personDetection = (Map<String, Object>) video.get("personDetection");
-					userPromptBuilder.append("   人物识别信息:\n");
-					userPromptBuilder.append("     - 人物数量: ").append(personDetection.get("personCount")).append("\n");
-
-					if (personDetection.containsKey("targetPerson")) {
-						Map<String, Object> targetPerson = (Map<String, Object>) personDetection.get("targetPerson");
-						Map<String, Object> attributes = (Map<String, Object>) targetPerson.get("attributes");
-
-						userPromptBuilder.append("     - 目标人物属性:\n");
-						userPromptBuilder.append("       * 性别: ").append(attributes.get("gender")).append("\n");
-
-						if (attributes.containsKey("upperClothing")) {
-							Map<String, Object> upperClothing = (Map<String, Object>) attributes.get("upperClothing");
-							userPromptBuilder.append("       * 上衣: ").append(upperClothing.get("color"))
-									.append(" ").append(upperClothing.get("type"))
-									.append(" (置信度: ").append(upperClothing.get("confidence")).append(")\n");
-						}
-
-						if (attributes.containsKey("lowerClothing")) {
-							Map<String, Object> lowerClothing = (Map<String, Object>) attributes.get("lowerClothing");
-							userPromptBuilder.append("       * 裤子: ").append(lowerClothing.get("color"))
-									.append(" ").append(lowerClothing.get("type"))
-									.append(" (置信度: ").append(lowerClothing.get("confidence")).append(")\n");
-						}
-					}
+		// 根据查询内容筛选不同类型的视频
+		if (query.contains("黑色") || query.contains("上衣") || query.contains("男")) {
+			// 筛选人物外观相关视频
+			for (Map<String, Object> video : videoList) {
+				String description = (String) video.get("description");
+				if (description.contains("黑色") && description.contains("男")) {
+					filteredVideos.add(video);
 				}
-
-				// 添加关键帧信息
-				if (video.containsKey("keyFrames")) {
-					userPromptBuilder.append("   关键时间点:\n");
-					List<Map<String, Object>> keyFrames = (List<Map<String, Object>>) video.get("keyFrames");
-					for (Map<String, Object> keyFrame : keyFrames) {
-						userPromptBuilder.append("     - ").append(keyFrame.get("timestamp"))
-								.append("秒: ").append(keyFrame.get("description")).append("\n");
-					}
+			}
+		} else if (query.contains("入侵") || query.contains("异常") || query.contains("事件")) {
+			// 筛选安全事件相关视频
+			for (Map<String, Object> video : videoList) {
+				String description = (String) video.get("description");
+				if (description.contains("尝试") || description.contains("陌生人") || description.contains("未授权")) {
+					filteredVideos.add(video);
 				}
-				userPromptBuilder.append("\n");
+			}
+		} else if (query.contains("烟") || query.contains("火") || query.contains("烟雾")) {
+			// 筛选火灾安全相关视频
+			for (Map<String, Object> video : videoList) {
+				String description = (String) video.get("description");
+				if (description.contains("烟雾") || description.contains("火")) {
+					filteredVideos.add(video);
+				}
 			}
 		} else {
-			userPromptBuilder.append("未找到匹配的视频。\n");
+			// 通用筛选，按相关性排序
+			videoList.sort((v1, v2) -> {
+				double score1 = (double) v1.get("relevanceScore");
+				double score2 = (double) v2.get("relevanceScore");
+				return Double.compare(score2, score1);  // 降序排列
+			});
+
+			filteredVideos = new ArrayList<>(videoList);
 		}
 
-		// 调用大模型生成报告
-		SystemMessage systemMessage = new SystemMessage(systemPrompt);
-		UserMessage userMessage = new UserMessage(userPromptBuilder.toString());
-
-		String markdownReport = videoSearchService.getMarkdownReport(systemMessage, userMessage);
-
-		// 构建返回的报告对象
-		Map<String, Object> report = new HashMap<>();
-		report.put("type", "video_search");
-		report.put("format", "markdown");
-		report.put("content", markdownReport);
-		report.put("query", query);
-		report.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-		report.put("resultCount", filteredVideos != null ? filteredVideos.size() : 0);
-
-		return report;
-	}
-
-
-
-	/**
-	 * 生成通用报告（不依赖检索结果）
-	 */
-	private Map<String, Object> generateGenericReport(String query, String reportType) {
-		// 调用大模型生成通用报告
-		// 构建系统提示词
-		String systemPrompt = """
-				你是一个专业的报告生成助手。请根据用户的查询，生成一份格式规范的Markdown格式报告。
-				报告应当客观、专业、简洁，根据用户查询的主题和意图进行深入分析。
-
-				报告应包含以下部分：
-				1. 报告标题：简明扼要地概括主题
-				2. 摘要：对主题的简要概述
-				3. 主要内容：分析用户查询的关键点，提供相关信息和见解
-				4. 结论与建议：基于分析提供的结论和建议
-				5. 参考资料：如有必要，列出相关参考资料
-
-				请使用Markdown语法格式化报告，包括标题(#)、列表(-)、表格等元素，确保报告结构清晰、易读。
-				不要添加任何额外的解释或前后文，直接返回Markdown格式的报告内容。
-				""";
-
-		// 构建用户提示词
-		String userPrompt = String.format("""
-				请根据以下查询生成一份专业的报告：
-
-				查询: %s
-				报告类型: %s
-
-				请分析查询意图，提供相关的深入见解，并生成一份结构完整的Markdown格式报告。
-				""", query, reportType != null ? reportType : "general");
-
-		// 调用大模型生成报告
-		SystemMessage systemMessage = new SystemMessage(systemPrompt);
-		UserMessage userMessage = new UserMessage(userPrompt);
-
-		String markdownReport = videoSearchService.getMarkdownReport(systemMessage, userMessage);
-
-		// 构建返回的报告对象
-		Map<String, Object> report = new HashMap<>();
-		report.put("type", reportType != null ? reportType : "general");
-		report.put("format", "markdown");
-		report.put("content", markdownReport);
-		report.put("query", query);
-		report.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-
-		return report;
+		return filteredVideos;
 	}
 
 	/**
-	 * 创建示例人物视频对象
+	 * 生成筛选理由
 	 */
-	private Map<String, Object> createPersonVideo(String id, String title, String description, double relevance) {
-		Map<String, Object> video = new HashMap<>();
-		video.put("id", id);
-		video.put("title", title);
-		video.put("description", description);
-		video.put("duration", 60 + (int) (Math.random() * 120));
-		video.put("relevanceScore", relevance);
-		video.put("timestamp", "2025-07-10T14:30:00Z");
-		video.put("source", "监控摄像头");
+	private List<Map<String, Object>> generateReasoning(String query, List<Map<String, Object>> filteredVideos) {
+		List<Map<String, Object>> reasoning = new ArrayList<>();
 
-		// 添加人物识别信息
-		Map<String, Object> personDetection = new HashMap<>();
-		personDetection.put("personCount", 1 + (int) (Math.random() * 5));
-		personDetection.put("targetPerson", Map.of(
-				"boundingBox", Map.of("x", 120, "y", 80, "width", 60, "height", 180),
-				"confidence", 0.95,
-				"attributes", Map.of(
-						"gender", "male",
-						"upperClothing", Map.of("color", "black", "type", "shirt", "confidence", 0.92),
-						"lowerClothing", Map.of("color", "white", "type", "jeans", "confidence", 0.88),
-						"accessories", List.of("none")
-				)
-		));
-		video.put("personDetection", personDetection);
+		for (Map<String, Object> video : filteredVideos) {
+			String id = (String) video.get("id");
+			String description = (String) video.get("description");
 
-		// 添加关键帧信息
-		List<Map<String, Object>> keyFrames = new ArrayList<>();
-		keyFrames.add(Map.of(
-				"timestamp", 15,
-				"personVisible", true,
-				"description", "目标人物进入画面"
-		));
-		keyFrames.add(Map.of(
-				"timestamp", 45,
-				"personVisible", true,
-				"description", "目标人物最清晰角度"
-		));
-		video.put("keyFrames", keyFrames);
+			if (query.contains("黑色") || query.contains("上衣") || query.contains("男")) {
+				reasoning.add(Map.of(
+						"videoId", id,
+						"reason", "匹配用户查询条件：包含黑色服装和男性人物"
+				));
+			} else if (query.contains("入侵") || query.contains("异常") || query.contains("事件")) {
+				reasoning.add(Map.of(
+						"videoId", id,
+						"reason", "匹配用户查询条件：包含潜在入侵或异常行为"
+				));
+			} else if (query.contains("烟") || query.contains("火") || query.contains("烟雾")) {
+				reasoning.add(Map.of(
+						"videoId", id,
+						"reason", "匹配用户查询条件：包含烟雾或火灾相关情况"
+				));
+			} else {
+				reasoning.add(Map.of(
+						"videoId", id,
+						"reason", "基于相关性评分筛选的高匹配度结果"
+				));
+			}
+		}
 
-		return video;
+		return reasoning;
 	}
 }

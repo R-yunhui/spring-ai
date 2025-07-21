@@ -1,10 +1,13 @@
 package com.ral.young;
 
+import com.ral.young.tools.ReportGenerationTools;
+import com.ral.young.tools.VideoAnalysisTools;
 import com.ral.young.tools.VideoSearchTools;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 /**
@@ -21,9 +24,12 @@ public class McpClientApplication {
 	}
 
 	@Bean
-	public ToolCallbackProvider weatherTools(VideoSearchTools videoSearchTools) {
+	public ToolCallbackProvider weatherTools(ApplicationContext applicationContext) {
+		VideoSearchTools videoSearchTools = applicationContext.getBean(VideoSearchTools.class);
+		VideoAnalysisTools videoAnalysisTools = applicationContext.getBean(VideoAnalysisTools.class);
+		ReportGenerationTools generationTools = applicationContext.getBean(ReportGenerationTools.class);
 		return MethodToolCallbackProvider.builder()
-				.toolObjects(videoSearchTools)
+				.toolObjects(videoSearchTools, videoAnalysisTools, generationTools)
 				.build();
 	}
 }
