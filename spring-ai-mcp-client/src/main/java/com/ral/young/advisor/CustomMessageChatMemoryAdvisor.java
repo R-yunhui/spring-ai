@@ -1,10 +1,10 @@
 package com.ral.young.advisor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientMessageAggregator;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
 import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
@@ -13,6 +13,7 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,26 +28,17 @@ import java.util.List;
  * @date 2025/7/22 9:58
  * @since 1.0.0
  */
+@Slf4j
+@Service
 public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
-	private final ChatMemory chatMemory;
+	private  ChatMemory chatMemory;
 
-	private final String defaultConversationId;
+	private  String defaultConversationId;
 
-	private final int order;
+	private  int order;
 
-	private final Scheduler scheduler;
-
-	private CustomMessageChatMemoryAdvisor(ChatMemory chatMemory, String defaultConversationId, int order,
-									 Scheduler scheduler) {
-		Assert.notNull(chatMemory, "chatMemory cannot be null");
-		Assert.hasText(defaultConversationId, "defaultConversationId cannot be null or empty");
-		Assert.notNull(scheduler, "scheduler cannot be null");
-		this.chatMemory = chatMemory;
-		this.defaultConversationId = defaultConversationId;
-		this.order = order;
-		this.scheduler = scheduler;
-	}
+	private  Scheduler scheduler;
 
 	@Override
 	public int getOrder() {
@@ -116,7 +108,15 @@ public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 	}
 
 	public void putToolMessage(String chatId, List<Message> messages) {
-		this.chatMemory.add(chatId, messages);
+		List<Message> curMessage = this.chatMemory.get(chatId);
+		log.info("添加前的消息数量:{}", curMessage.size());
+		for (Message message : messages) {
+			if (curMessage.hashCode() == message.hashCode()) {
+				continue;
+			}
+			this.chatMemory.add(chatId, message);
+		}
+		log.info("添加后的消息数量:{}", this.chatMemory.get(chatId).size());
 	}
 
 	public static CustomMessageChatMemoryAdvisor.Builder builder(ChatMemory chatMemory) {
@@ -139,6 +139,7 @@ public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
 		/**
 		 * Set the conversation id.
+		 *
 		 * @param conversationId the conversation id
 		 * @return the builder
 		 */
@@ -149,6 +150,7 @@ public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
 		/**
 		 * Set the order.
+		 *
 		 * @param order the order
 		 * @return the builder
 		 */
@@ -164,11 +166,16 @@ public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
 		/**
 		 * Build the advisor.
+		 *
 		 * @return the advisor
 		 */
 		public CustomMessageChatMemoryAdvisor build() {
-			return new CustomMessageChatMemoryAdvisor(this.chatMemory, this.conversationId, this.order, this.scheduler);
+			CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor = new CustomMessageChatMemoryAdvisor();
+			customMessageChatMemoryAdvisor.chatMemory = this.chatMemory;
+			customMessageChatMemoryAdvisor.defaultConversationId = this.conversationId;
+			customMessageChatMemoryAdvisor.order = this.order;
+			customMessageChatMemoryAdvisor.scheduler = this.scheduler;
+			return customMessageChatMemoryAdvisor;
 		}
-
 	}
 }

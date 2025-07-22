@@ -7,6 +7,7 @@ import com.ral.young.vo.ChatRequestVO;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.BaseChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -37,16 +38,13 @@ public class VideoSearchService {
 
 	private final List<ToolCallbackProvider> tools;
 
-	public VideoSearchService(ChatModel dashScopeChatModel, List<ToolCallbackProvider> tools) {
+	public final CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor;
+
+	public VideoSearchService(ChatModel dashScopeChatModel, List<ToolCallbackProvider> tools, CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor) {
 		this.tools = tools;
+		this.customMessageChatMemoryAdvisor = customMessageChatMemoryAdvisor;
 		this.chatClient = ChatClient.builder(dashScopeChatModel)
-				.defaultAdvisors(CustomMessageChatMemoryAdvisor.builder(
-								MessageWindowChatMemory.builder()
-										.chatMemoryRepository(
-												new InMemoryChatMemoryRepository())
-										.maxMessages(20)
-										.build())
-						.build())
+				.defaultAdvisors(customMessageChatMemoryAdvisor)
 				.build();
 	}
 

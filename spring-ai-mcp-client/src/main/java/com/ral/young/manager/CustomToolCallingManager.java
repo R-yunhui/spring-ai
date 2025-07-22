@@ -1,14 +1,15 @@
 package com.ral.young.manager;
 
+import cn.hutool.core.collection.CollUtil;
 import com.ral.young.advisor.CustomMessageChatMemoryAdvisor;
 import io.micrometer.observation.ObservationRegistry;
-import jakarta.annotation.Resource;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -73,8 +74,10 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 	private ToolCallingObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
+	private final CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor;
+
 	public CustomToolCallingManager(ObservationRegistry observationRegistry, ToolCallbackResolver toolCallbackResolver,
-									 ToolExecutionExceptionProcessor toolExecutionExceptionProcessor) {
+									ToolExecutionExceptionProcessor toolExecutionExceptionProcessor, CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor) {
 		Assert.notNull(observationRegistry, "observationRegistry cannot be null");
 		Assert.notNull(toolCallbackResolver, "toolCallbackResolver cannot be null");
 		Assert.notNull(toolExecutionExceptionProcessor, "toolCallExceptionConverter cannot be null");
@@ -82,6 +85,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 		this.observationRegistry = observationRegistry;
 		this.toolCallbackResolver = toolCallbackResolver;
 		this.toolExecutionExceptionProcessor = toolExecutionExceptionProcessor;
+		this.customMessageChatMemoryAdvisor = customMessageChatMemoryAdvisor;
 	}
 
 	@NotNull
@@ -133,6 +137,18 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 		List<Message> conversationHistory = buildConversationHistoryAfterToolExecution(prompt.getInstructions(),
 				assistantMessage, internalToolExecutionResult.toolResponseMessage());
+
+		var options = prompt.getOptions();
+		if (options instanceof ToolCallingChatOptions toolCallingChatOptions) {
+			Map<String, Object> optionsToolContext = toolCallingChatOptions.getToolContext();
+			var conversationId = optionsToolContext.get(ChatMemory.CONVERSATION_ID);
+			if (conversationId instanceof Long chatId) {
+				if (CollUtil.isNotEmpty(conversationHistory)) {
+					logger.info("Put tool messages to memory: {}, size: {}", conversationHistory, conversationHistory.size());
+					customMessageChatMemoryAdvisor.putToolMessage(String.valueOf(chatId), conversationHistory);
+				}
+			}
+		}
 
 		return ToolExecutionResult.builder()
 				.conversationHistory(conversationHistory)
@@ -258,6 +274,8 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 		private ToolExecutionExceptionProcessor toolExecutionExceptionProcessor = DEFAULT_TOOL_EXECUTION_EXCEPTION_PROCESSOR;
 
+		private CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor;
+
 		private Builder() {
 		}
 
@@ -277,9 +295,15 @@ public class CustomToolCallingManager implements ToolCallingManager {
 			return this;
 		}
 
+		public CustomToolCallingManager.Builder messageChatMemoryAdvisor(
+				CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor) {
+			this.customMessageChatMemoryAdvisor = customMessageChatMemoryAdvisor;
+			return this;
+		}
+
 		public CustomToolCallingManager build() {
 			return new CustomToolCallingManager(this.observationRegistry, this.toolCallbackResolver,
-					this.toolExecutionExceptionProcessor);
+					this.toolExecutionExceptionProcessor, customMessageChatMemoryAdvisor);
 		}
 
 	}
