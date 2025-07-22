@@ -1,5 +1,6 @@
 package com.ral.young.tools;
 
+import cn.hutool.json.JSONUtil;
 import com.ral.young.utils.VideoDataUtils;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -163,7 +164,7 @@ public class VideoSearchTools {
 				List.of("keywords", "embedding") : List.of("keywords"));
 		result.put("searchTime", "0.68s");
 
-		log.info("综合视频检索工具 最终结果数量: {}", filteredVideos.size());
+		log.info("综合视频检索工具 最终结果数量: {}, 详细检测结果数据: {}", filteredVideos.size(), JSONUtil.toJsonPrettyStr(filteredVideos));
 		return result;
 	}
 
@@ -182,33 +183,33 @@ public class VideoSearchTools {
 
 		if (keywordsStr.contains("黑色") || keywordsStr.contains("上衣") || keywordsStr.contains("男")) {
 			// 人物外观相关视频
-			videos.add(VideoDataUtils.createPersonVideo("vid-001", "商场监控片段A",
+			videos.add(VideoDataUtils.createPersonVideo("vid_001", "商场监控片段A",
 					"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.94));
-			videos.add(VideoDataUtils.createPersonVideo("vid-002", "街道监控记录B",
+			videos.add(VideoDataUtils.createPersonVideo("vid_002", "街道监控记录B",
 					"十字路口东南角，一名穿黑色T恤白色裤子的男子正在等待过马路", 0.86));
-			videos.add(VideoDataUtils.createPersonVideo("vid-003", "购物中心出入口",
+			videos.add(VideoDataUtils.createPersonVideo("vid_003", "购物中心出入口",
 					"购物中心北门，多名顾客进出，其中包括一名穿黑色上衣的男性", 0.72));
 		} else if (keywordsStr.contains("入侵") || keywordsStr.contains("异常") || keywordsStr.contains("事件")) {
 			// 安全事件相关视频
-			videos.add(VideoDataUtils.createSecurityVideo("vid-101", "仓库后门监控A",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_101", "仓库后门监控A",
 					"仓库后门区域，一名陌生人尝试撬门进入", 0.96));
-			videos.add(VideoDataUtils.createSecurityVideo("vid-102", "办公区走廊监控B",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_102", "办公区走廊监控B",
 					"办公区走廊，非工作时间有人员活动", 0.88));
-			videos.add(VideoDataUtils.createSecurityVideo("vid-103", "停车场监控C",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_103", "停车场监控C",
 					"地下停车场，有人在车辆间徘徊", 0.79));
 		} else if (keywordsStr.contains("烟") || keywordsStr.contains("火") || keywordsStr.contains("烟雾")) {
 			// 火灾安全相关视频
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-201", "厨房监控A",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_201", "厨房监控A",
 					"厨房区域，炉灶上出现明显烟雾", 0.97));
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-202", "走廊监控B",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_202", "走廊监控B",
 					"三楼走廊，烟雾探测器被触发", 0.89));
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-203", "仓储区监控C",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_203", "仓储区监控C",
 					"仓储区角落，有微弱烟雾出现", 0.75));
 		} else {
 			// 通用视频
-			videos.add(VideoDataUtils.createGenericVideo("vid-301", "办公区全景",
+			videos.add(VideoDataUtils.createGenericVideo("vid_301", "办公区全景",
 					"办公区日常活动画面", 0.70));
-			videos.add(VideoDataUtils.createGenericVideo("vid-302", "前台接待区",
+			videos.add(VideoDataUtils.createGenericVideo("vid_302", "前台接待区",
 					"公司前台接待区域的监控画面", 0.65));
 		}
 
@@ -223,35 +224,35 @@ public class VideoSearchTools {
 
 		if (query.contains("黑色") || query.contains("上衣") || query.contains("男")) {
 			// 人物外观相关视频
-			videos.add(VideoDataUtils.createPersonVideo("vid-001", "商场监控片段A",
+			videos.add(VideoDataUtils.createPersonVideo("vid_001", "商场监控片段A",
 					"商场一楼电梯附近，一名穿黑色上衣白色牛仔裤的男子正在看手机", 0.95));
-			videos.add(VideoDataUtils.createPersonVideo("vid-004", "停车场监控C",
+			videos.add(VideoDataUtils.createPersonVideo("vid_004", "停车场监控C",
 					"地下停车场B2层，一名身穿黑色夹克和浅色裤子的男性正在走向出口", 0.87));
-			videos.add(VideoDataUtils.createPersonVideo("vid-005", "咖啡厅内部视频",
+			videos.add(VideoDataUtils.createPersonVideo("vid_005", "咖啡厅内部视频",
 					"咖啡厅靠窗座位，一名穿黑色上衣白色裤子的男顾客正在使用笔记本电脑", 0.82));
 		} else if (query.contains("入侵") || query.contains("异常") || query.contains("事件")) {
 			// 安全事件相关视频
-			videos.add(VideoDataUtils.createSecurityVideo("vid-101", "仓库后门监控A",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_101", "仓库后门监控A",
 					"仓库后门区域，一名陌生人尝试撬门进入", 0.98));
-			videos.add(VideoDataUtils.createSecurityVideo("vid-104", "围墙监控D",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_104", "围墙监控D",
 					"公司围墙外，有人徘徊并尝试攀爬", 0.91));
-			videos.add(VideoDataUtils.createSecurityVideo("vid-105", "服务器室入口",
+			videos.add(VideoDataUtils.createSecurityVideo("vid_105", "服务器室入口",
 					"服务器室入口，有未授权人员尝试进入", 0.85));
 		} else if (query.contains("烟") || query.contains("火") || query.contains("烟雾")) {
 			// 火灾安全相关视频
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-201", "厨房监控A",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_201", "厨房监控A",
 					"厨房区域，炉灶上出现明显烟雾", 0.99));
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-204", "电气室监控D",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_204", "电气室监控D",
 					"电气室内，配电箱附近出现异常烟雾", 0.93));
-			videos.add(VideoDataUtils.createFireSafetyVideo("vid-205", "实验室监控",
+			videos.add(VideoDataUtils.createFireSafetyVideo("vid_205", "实验室监控",
 					"实验室角落，有化学物质反应产生的烟雾", 0.88));
 		} else {
 			// 通用视频
-			videos.add(VideoDataUtils.createGenericVideo("vid-301", "办公区全景",
+			videos.add(VideoDataUtils.createGenericVideo("vid_301", "办公区全景",
 					"办公区日常活动画面", 0.75));
-			videos.add(VideoDataUtils.createGenericVideo("vid-302", "前台接待区",
+			videos.add(VideoDataUtils.createGenericVideo("vid_302", "前台接待区",
 					"公司前台接待区域的监控画面", 0.70));
-			videos.add(VideoDataUtils.createGenericVideo("vid-303", "会议室监控",
+			videos.add(VideoDataUtils.createGenericVideo("vid_303", "会议室监控",
 					"主会议室的监控画面，显示会议进行中", 0.68));
 		}
 

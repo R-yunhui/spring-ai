@@ -83,7 +83,7 @@ public class VideoDataUtils {
                 "description", "未授权人员尝试进入受限区域"
         ));
         
-        if (id.equals("vid-101")) {
+        if (id.equals("vid_101")) {
             securityEvents.add(Map.of(
                     "type", "tampering",
                     "confidence", 0.85,
@@ -91,7 +91,7 @@ public class VideoDataUtils {
                     "severity", "high",
                     "description", "检测到门锁被撬动"
             ));
-        } else if (id.equals("vid-104")) {
+        } else if (id.equals("vid_104")) {
             securityEvents.add(Map.of(
                     "type", "perimeter_breach",
                     "confidence", 0.88,
@@ -132,11 +132,11 @@ public class VideoDataUtils {
         
         // 添加火灾安全信息
         boolean smokeDetected = true;
-        boolean flameDetected = id.equals("vid-201") || id.equals("vid-204");
+        boolean flameDetected = id.equals("vid_201") || id.equals("vid_204");
         
         Map<String, Object> fireSafetyInfo = new HashMap<>();
         fireSafetyInfo.put("smokeDetected", smokeDetected);
-        fireSafetyInfo.put("smokeLevel", id.equals("vid-201") ? "high" : "medium");
+        fireSafetyInfo.put("smokeLevel", id.equals("vid_201") ? "high" : "medium");
         fireSafetyInfo.put("flameDetected", flameDetected);
         fireSafetyInfo.put("confidence", 0.94);
         fireSafetyInfo.put("detectionTime", 28);

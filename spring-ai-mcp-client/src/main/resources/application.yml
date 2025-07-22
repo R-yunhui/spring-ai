@@ -3,13 +3,13 @@ spring:
     name: mcp-client
   ai:
     dashscope:
-      api-key: sk-dbc8ed51cec741d388e0ca023d33b551
+      api-key: sk-0b8f679b8dfd4b649d53feabcb350b3f
     mcp:
       client:
         ssl:
           verify: false
-        stdio:
-          servers-configuration: classpath:mcp-servers-config.json
+#        stdio:
+#          servers-configuration: classpath:mcp-servers-config.json
           # 直接配置
           # connections:
           #   server1:

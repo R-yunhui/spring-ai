@@ -40,7 +40,7 @@ public class VideoAnalysisTools {
 	 * @param eventTypes   要检测的事件类型列表，如["人员入侵", "车辆入侵", "烟火烟雾"]
 	 * @return 分析结果
 	 */
-	@Tool(description = "使用专业CV模型分析视频内容，检测特定事件或行为。精确度高但处理时间较长。可用于单个视频分析或多个视频批量分析。")
+	@Tool(description = "使用专业CV模型分析视频内容，检测特定事件或行为。精确度高但处理时间较长。返回的分析结果可直接用于生成分析报告。")
 	public Map<String, Object> analyzeVideos(
 			@ToolParam(description = "要分析的视频ID或ID列表") List<String> videoIds,
 			@ToolParam(description = "分析类型，如'事件检测'、'行为分析'等") String analysisType,
@@ -134,7 +134,7 @@ public class VideoAnalysisTools {
 	 * @param query   分析问题
 	 * @return 分析结果
 	 */
-	@Tool(description = "使用大模型对视频进行分析。处理速度较快但精确度可能略低，适用于复杂场景或需要快速结果的情况。")
+	@Tool(description = "使用大模型对视频进行分析。处理速度较快但精确度可能略低。返回的分析结果可直接用于生成分析报告。")
 	public Map<String, Object> analyzeVideoBySlicing(
 			@ToolParam(description = "视频ID") String videoId,
 			@ToolParam(description = "分析问题") String query
