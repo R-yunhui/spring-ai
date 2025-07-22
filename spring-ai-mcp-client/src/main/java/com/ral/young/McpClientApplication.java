@@ -19,6 +19,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * @author renyh
@@ -49,7 +50,7 @@ public class McpClientApplication {
 						MessageWindowChatMemory.builder()
 								.chatMemoryRepository(
 										new InMemoryChatMemoryRepository())
-								.maxMessages(20)
+								.maxMessages(30)
 								.build())
 				.build();
 	}
@@ -71,5 +72,10 @@ public class McpClientApplication {
 		observationConvention.ifAvailable(toolCallingManager::setObservationConvention);
 
 		return toolCallingManager;
+	}
+
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
 	}
 }

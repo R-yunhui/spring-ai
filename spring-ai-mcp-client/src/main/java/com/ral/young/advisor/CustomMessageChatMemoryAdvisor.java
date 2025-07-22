@@ -12,6 +12,7 @@ import org.springframework.ai.chat.client.advisor.api.BaseChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -21,6 +22,7 @@ import reactor.core.scheduler.Scheduler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author renyh
@@ -108,13 +110,22 @@ public class CustomMessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 	}
 
 	public void putToolMessage(String chatId, List<Message> messages) {
-		List<Message> curMessage = this.chatMemory.get(chatId);
-		log.info("添加前的消息数量:{}", curMessage.size());
-		for (Message message : messages) {
-			if (curMessage.hashCode() == message.hashCode()) {
-				continue;
+		List<Message> curMessages = this.chatMemory.get(chatId);
+		log.info("添加前的消息数量:{}", curMessages.size());
+		log.info("过滤前待添加的消息数量:{}", messages.size());
+		List<Message> filterMessages = messages.stream()
+				.filter(message -> {
+					Optional<Message> first = curMessages.stream()
+							.filter(curMessage -> curMessage.hashCode() == message.hashCode())
+							.findFirst();
+					return first.isEmpty();
+				}).toList();
+		log.info("过滤后待添加的消息数量:{}", filterMessages.size());
+		for (Message message : filterMessages) {
+			if (MessageType.ASSISTANT.equals(message.getMessageType()) || MessageType.TOOL.equals(message.getMessageType())) {
+				log.info("添加之前不存在的上下文信息");
+				this.chatMemory.add(chatId, message);
 			}
-			this.chatMemory.add(chatId, message);
 		}
 		log.info("添加后的消息数量:{}", this.chatMemory.get(chatId).size());
 	}

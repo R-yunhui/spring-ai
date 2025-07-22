@@ -289,8 +289,7 @@ public class ReportGenerationTools {
                 ));
 
         // 合并所有涉及的视频ID
-        List<String> allVideoIds = new ArrayList<>();
-        allVideoIds.addAll(videoSearchMap.keySet());
+		List<String> allVideoIds = new ArrayList<>(videoSearchMap.keySet());
         for (String id : videoAnalysisMap.keySet()) {
             if (!allVideoIds.contains(id)) {
                 allVideoIds.add(id);

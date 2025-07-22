@@ -30,7 +30,12 @@ public class McpController {
 		return mcpService.chatWithMcp(chatRequestVO);
 	}
 
-	@PostMapping("/video/search")
+	@GetMapping("/test")
+	public void test() {
+		videoSearchService.callBedrockApi();
+	}
+
+	@PostMapping(value = "/video/search")
 	public String videoSearch(@RequestBody ChatRequestVO chatRequestVO) {
 		return videoSearchService.videoSearch(chatRequestVO);
 	}
