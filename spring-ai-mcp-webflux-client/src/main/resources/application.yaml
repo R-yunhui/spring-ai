@@ -13,16 +13,15 @@ spring:
     web-application-type: none
   ai:
     dashscope:
-      api-key: sk-dbc8ed51cec741d388e0ca023d33b551
+      api-key: sk-0b8f679b8dfd4b649d53feabcb350b3f
     mcp:
       client:
-        toolcallback:
-          enabled: true
         sse:
           connections:
             server1:
               # 实际的连接地址为：http://localhost:8080/sse/mcp
               url: http://localhost:8080/
+        root-change-notification: true
   mandatory-file-encoding: UTF-8
 
 # 调试日志

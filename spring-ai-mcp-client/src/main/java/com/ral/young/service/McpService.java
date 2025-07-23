@@ -2,6 +2,7 @@ package com.ral.young.service;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.ral.young.vo.ChatRequestVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -34,7 +35,7 @@ public class McpService {
 
 	private final List<ToolCallbackProvider> tools;
 
-	public McpService(ChatModel dashScopeChatModel, List<ToolCallbackProvider> tools) {
+	public McpService(DashScopeChatModel dashScopeChatModel, List<ToolCallbackProvider> tools) {
 		this.tools = tools;
 		List<ToolCallback> toolCallbacks = tools.stream()
 				.map(ToolCallbackProvider::getToolCallbacks)  // 获取每个 ToolCallbackProvider 的回调数组
@@ -57,7 +58,7 @@ public class McpService {
 
 	public String chatWithMcp(ChatRequestVO chatRequestVO) {
 		ChatResponse chatResponse = chatClient.prompt(chatRequestVO.getPrompt())
-				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, chatRequestVO.getRequestId()))
+				.advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, chatRequestVO.getConversationId()))
 				.call()
 				.chatResponse();
 		assert chatResponse != null;

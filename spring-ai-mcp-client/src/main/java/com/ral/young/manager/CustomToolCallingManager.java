@@ -1,7 +1,9 @@
 package com.ral.young.manager;
 
 import cn.hutool.core.collection.CollUtil;
-import com.ral.young.advisor.CustomMessageChatMemoryAdvisor;
+import cn.hutool.core.util.StrUtil;
+import com.ral.young.advisor.UranMessageChatMemoryAdvisor;
+import com.ral.young.memeory.RoundBasedChatMemory;
 import io.micrometer.observation.ObservationRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -9,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -74,10 +75,10 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 	private ToolCallingObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
-	private final CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor;
+	private final UranMessageChatMemoryAdvisor uranMessageChatMemoryAdvisor;
 
 	public CustomToolCallingManager(ObservationRegistry observationRegistry, ToolCallbackResolver toolCallbackResolver,
-									ToolExecutionExceptionProcessor toolExecutionExceptionProcessor, CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor) {
+									ToolExecutionExceptionProcessor toolExecutionExceptionProcessor, UranMessageChatMemoryAdvisor uranMessageChatMemoryAdvisor) {
 		Assert.notNull(observationRegistry, "observationRegistry cannot be null");
 		Assert.notNull(toolCallbackResolver, "toolCallbackResolver cannot be null");
 		Assert.notNull(toolExecutionExceptionProcessor, "toolCallExceptionConverter cannot be null");
@@ -85,7 +86,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 		this.observationRegistry = observationRegistry;
 		this.toolCallbackResolver = toolCallbackResolver;
 		this.toolExecutionExceptionProcessor = toolExecutionExceptionProcessor;
-		this.customMessageChatMemoryAdvisor = customMessageChatMemoryAdvisor;
+		this.uranMessageChatMemoryAdvisor = uranMessageChatMemoryAdvisor;
 	}
 
 	@NotNull
@@ -125,9 +126,9 @@ public class CustomToolCallingManager implements ToolCallingManager {
 				.findFirst();
 
 		if (toolCallGeneration.isEmpty()) {
+			logger.info("No tool call requested by the chat model");
 			throw new IllegalStateException("No tool call requested by the chat model");
 		}
-
 		AssistantMessage assistantMessage = toolCallGeneration.get().getOutput();
 
 		ToolContext toolContext = buildToolContext(prompt, assistantMessage);
@@ -140,20 +141,26 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 		var options = prompt.getOptions();
 		if (options instanceof ToolCallingChatOptions toolCallingChatOptions) {
-			Map<String, Object> optionsToolContext = toolCallingChatOptions.getToolContext();
-			var conversationId = optionsToolContext.get(ChatMemory.CONVERSATION_ID);
-			if (conversationId instanceof Long chatId) {
-				if (CollUtil.isNotEmpty(conversationHistory)) {
-					logger.info("Put tool messages to memory: {}, size: {}", conversationHistory, conversationHistory.size());
-					customMessageChatMemoryAdvisor.putToolMessage(String.valueOf(chatId), conversationHistory);
-				}
-			}
+			// 将 tool 调用过程中的消息存储上下文
+			pushToolMessageToContext(toolCallingChatOptions, conversationHistory);
 		}
 
 		return ToolExecutionResult.builder()
 				.conversationHistory(conversationHistory)
 				.returnDirect(internalToolExecutionResult.returnDirect())
 				.build();
+	}
+
+	private void pushToolMessageToContext(ToolCallingChatOptions toolCallingChatOptions, List<Message> conversationHistory) {
+		Map<String, Object> optionsToolContext = toolCallingChatOptions.getToolContext();
+		String conversationId = (String) optionsToolContext.get(RoundBasedChatMemory.CONVERSATION_ID);
+		String roundId = (String) optionsToolContext.get(RoundBasedChatMemory.ROUND_ID);
+		String flowQuestionId = (String) optionsToolContext.getOrDefault(RoundBasedChatMemory.FOLLOW_UP_QUESTION_ID, StrUtil.EMPTY);
+		String followUpQuestionReferenceId = (String) optionsToolContext.getOrDefault(RoundBasedChatMemory.FOLLOW_UP_QUESTION_REFERENCE_ID, StrUtil.EMPTY);
+		Boolean followUpQuestion = (Boolean) optionsToolContext.getOrDefault(RoundBasedChatMemory.FOLLOW_UP_QUESTION, false);
+		if (CollUtil.isNotEmpty(conversationHistory)) {
+			uranMessageChatMemoryAdvisor.putToolMessage(followUpQuestion, conversationId, roundId, flowQuestionId, followUpQuestionReferenceId, conversationHistory);
+		}
 	}
 
 	private static ToolContext buildToolContext(Prompt prompt, AssistantMessage assistantMessage) {
@@ -186,7 +193,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 	 * Execute the tool call and return the response message.
 	 */
 	private CustomToolCallingManager.InternalToolExecutionResult executeToolCall(Prompt prompt, AssistantMessage assistantMessage,
-																				  ToolContext toolContext) {
+																				 ToolContext toolContext) {
 		List<ToolCallback> toolCallbacks = List.of();
 		if (prompt.getOptions() instanceof ToolCallingChatOptions toolCallingChatOptions) {
 			toolCallbacks = toolCallingChatOptions.getToolCallbacks();
@@ -195,10 +202,8 @@ public class CustomToolCallingManager implements ToolCallingManager {
 		List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
 
 		Boolean returnDirect = null;
-
 		for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-
-			logger.debug("Executing tool call: {}", toolCall.name());
+			logger.info("待执行的工具名称: {}, 参数信息: {}", toolCall.name(), toolCall.arguments());
 
 			String toolName = toolCall.name();
 			String toolInputArguments = toolCall.arguments();
@@ -214,8 +219,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 			if (returnDirect == null) {
 				returnDirect = toolCallback.getToolMetadata().returnDirect();
-			}
-			else {
+			} else {
 				returnDirect = returnDirect && toolCallback.getToolMetadata().returnDirect();
 			}
 
@@ -232,8 +236,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 						String toolResult;
 						try {
 							toolResult = toolCallback.call(toolInputArguments, toolContext);
-						}
-						catch (ToolExecutionException ex) {
+						} catch (ToolExecutionException ex) {
 							toolResult = this.toolExecutionExceptionProcessor.process(ex);
 						}
 						observationContext.setToolCallResult(toolResult);
@@ -274,7 +277,7 @@ public class CustomToolCallingManager implements ToolCallingManager {
 
 		private ToolExecutionExceptionProcessor toolExecutionExceptionProcessor = DEFAULT_TOOL_EXECUTION_EXCEPTION_PROCESSOR;
 
-		private CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor;
+		private UranMessageChatMemoryAdvisor uranMessageChatMemoryAdvisor;
 
 		private Builder() {
 		}
@@ -296,14 +299,14 @@ public class CustomToolCallingManager implements ToolCallingManager {
 		}
 
 		public CustomToolCallingManager.Builder messageChatMemoryAdvisor(
-				CustomMessageChatMemoryAdvisor customMessageChatMemoryAdvisor) {
-			this.customMessageChatMemoryAdvisor = customMessageChatMemoryAdvisor;
+				UranMessageChatMemoryAdvisor uranMessageChatMemoryAdvisor) {
+			this.uranMessageChatMemoryAdvisor = uranMessageChatMemoryAdvisor;
 			return this;
 		}
 
 		public CustomToolCallingManager build() {
 			return new CustomToolCallingManager(this.observationRegistry, this.toolCallbackResolver,
-					this.toolExecutionExceptionProcessor, customMessageChatMemoryAdvisor);
+					this.toolExecutionExceptionProcessor, uranMessageChatMemoryAdvisor);
 		}
 
 	}

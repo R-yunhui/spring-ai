@@ -1,9 +1,27 @@
 spring:
   application:
     name: mcp-client
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: 3d1b1c58-f55a-4319-8799-643750f5aer5
+        refresh-enabled: true
+  config:
+    import:
+      - optional:nacos:llmConfig.yaml
+
   ai:
+    openai:
+      api-key: sk-0b8f679b8dfd4b649d53feabcb350b3f
     dashscope:
       api-key: sk-0b8f679b8dfd4b649d53feabcb350b3f
+    bedrock:
+      aws:
+        region: us-east-1
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+        timeout: 5m
     mcp:
       client:
         ssl:
